@@ -37,13 +37,13 @@ h1, h2, h3 {
     font-family: 'Roboto Mono', monospace;
     text-transform: uppercase;
 }
-/* EL MARCO DEL MENÚ (Caja con borde neon) */
+/* EL MARCO DEL MENÚ (Caja con borde neon) - INVISIBLE */
 div[data-testid="stVerticalBlockBorderWrapper"] {
-    border: 1px solid #00ffff !important;
-    background-color: rgba(0, 10, 20, 0.85);
-    box-shadow: 0 0 15px rgba(0, 255, 255, 0.15);
-    border-radius: 5px;
-    padding: 20px;
+    border: none !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+    border-radius: 0px;
+    padding: 0px;
 }
 /* Botones con centrado */
 div.stButton {
@@ -138,23 +138,53 @@ div.stButton {
     background: linear-gradient(45deg, #444400, #222200) !important;
 }
 /* Sliders modernos (faders) */
-.stSlider > div > div > div > div {
-    background: linear-gradient(90deg, rgba(0, 255, 255, 0.3), rgba(255, 0, 255, 0.3)) !important;
-    border-radius: 10px !important;
-    height: 8px !important;
+.stSlider {
+    padding: 12px 0 10px 0 !important;
+    margin: 0 !important;
 }
-.stSlider > div > div > div > div > div {
+.stSlider label {
+    font-size: 0.8rem !important;
+    font-weight: bold !important;
+    color: #00ffff !important;
+    margin-bottom: 8px !important;
+    display: block !important;
+    line-height: 1.3 !important;
+}
+/* Pista del slider */
+.stSlider > div > div:nth-child(2) {
+    margin-top: 5px !important;
+}
+.stSlider > div > div:nth-child(2) > div:nth-child(1) {
+    background: transparent !important;
+    border-radius: 0px !important;
+    height: 0px !important;
+}
+.stSlider > div > div:nth-child(2) > div:nth-child(1) > div {
     background: linear-gradient(45deg, #00ffff, #ff00ff) !important;
     border: 2px solid white !important;
-    box-shadow: 0 0 10px rgba(0, 255, 255, 0.7) !important;
-    width: 20px !important;
-    height: 20px !important;
+    box-shadow: 0 0 12px rgba(0, 255, 255, 0.8) !important;
+    width: 14px !important;
+    height: 14px !important;
     border-radius: 50% !important;
+    top: -5px !important;
 }
-.stSlider > div > div > div {
-    background: rgba(30, 30, 50, 0.8) !important;
-    border-radius: 10px !important;
-    height: 8px !important;
+/* Contenedor de valores min/max */
+.stSlider > div > div:nth-child(2) > div:nth-child(2) {
+    display: flex !important;
+    justify-content: space-between !important;
+    margin-top: 3px !important;
+    padding: 0 2px !important;
+}
+/* Valores del slider (min/max/actual) */
+.stSlider > div > div:nth-child(2) > div:nth-child(2) > span {
+    font-size: 0.65rem !important;
+    color: #ff00ff !important;
+    font-weight: bold !important;
+    line-height: 1 !important;
+}
+/* Columnas para sliders */
+[data-testid="column"] {
+    padding: 0 8px !important;
 }
 /* Inputs y Selectores */
 div[data-baseweb="select"] > div, div[data-baseweb="radio"] {
@@ -170,26 +200,26 @@ div[data-baseweb="select"] > div, div[data-baseweb="radio"] {
 }
 /* Paneles de texto (marco) */
 .neon-panel {
-    border: 1px solid rgba(0, 255, 255, 0.9);
-    background: linear-gradient(180deg, rgba(0, 10, 25, 0.88), rgba(0, 0, 0, 0.65));
-    box-shadow: 0 0 18px rgba(0, 255, 255, 0.18);
-    border-radius: 10px;
-    padding: 18px 18px;
-    margin: 10px 0 18px 0;
+    border: 2px solid rgba(0, 255, 255, 0.85);
+    background: linear-gradient(180deg, rgba(0, 15, 35, 0.95), rgba(0, 5, 20, 0.75));
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.25), inset 0 0 20px rgba(0, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 22px 22px;
+    margin: 15px 0 25px 0;
 }
 .neon-panel .panel-title {
     color: #00ffff;
-    text-shadow: 2px 2px 0px #ff00ff;
+    text-shadow: 0 0 10px rgba(0, 255, 255, 0.6), 2px 2px 0px rgba(255, 0, 255, 0.5);
     font-weight: 800;
-    letter-spacing: 1px;
+    letter-spacing: 2px;
     text-transform: uppercase;
-    margin: 0 0 10px 0;
-    font-size: 1.15rem;
+    margin: 0 0 12px 0;
+    font-size: 1.2rem;
 }
 .neon-panel p {
-    color: #cfcfcf;
+    color: #e0e0e0;
     font-size: 0.95rem;
-    line-height: 1.45rem;
+    line-height: 1.6rem;
     margin: 0 0 10px 0;
 }
 .neon-panel p:last-child {
@@ -227,14 +257,31 @@ div[data-testid="column"] > div {
     justify-content: center;
     width: 100%;
 }
+/* Contenedores con borde - INVISIBLE */
+[data-testid="stContainer"] {
+    border: none !important;
+    background: transparent !important;
+    border-radius: 0px;
+    padding: 0px !important;
+    margin: 0px !important;
+    box-shadow: none !important;
+}
+/* Subheaders en columnas */
+.stSubheader {
+    color: #00ffff !important;
+    text-shadow: 0 0 8px rgba(0, 255, 255, 0.4) !important;
+    font-size: 1.1rem !important;
+    font-weight: bold !important;
+    margin-bottom: 12px !important;
+}
 /* Cajitas neon para recomendaciones */
 .recommendation-box {
     border: 2px solid #00ffff;
-    background: linear-gradient(135deg, rgba(0, 20, 40, 0.9), rgba(0, 0, 20, 0.9));
-    box-shadow: 0 0 25px rgba(0, 255, 255, 0.4);
-    border-radius: 12px;
-    padding: 25px;
-    margin: 20px 0;
+    background: linear-gradient(135deg, rgba(0, 25, 50, 0.95), rgba(0, 5, 25, 0.95));
+    box-shadow: 0 0 30px rgba(0, 255, 255, 0.5), inset 0 0 20px rgba(0, 255, 255, 0.1);
+    border-radius: 14px;
+    padding: 28px;
+    margin: 25px 0;
     position: relative;
     overflow: hidden;
 }
@@ -302,12 +349,71 @@ div[data-testid="column"] > div {
     flex-direction: column;
     align-items: center;
     gap: 15px !important;
+}
+/* Checkboxes mejorados */
+[data-testid="stCheckbox"] {
+    margin: 8px 0 !important;
+}
+[data-testid="stCheckbox"] label {
+    color: #00ffff !important;
+    font-weight: 600 !important;
+}
+/* Dividers */
+hr, [data-testid="stHorizontalBlock"] > hr {
+    border: none !important;
+    height: 2px !important;
+    background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.5), transparent) !important;
+    margin: 15px 0 !important;
+}
+/* Radios mejorados */
+[data-testid="stRadio"] {
+    margin: 10px 0 !important;
+}
+[data-testid="stRadio"] label {
+    color: #00ffff !important;
+    font-weight: 600 !important;
+}
     width: 100%;
     margin: 0 auto;
 }
 .election-button {
     min-height: 60px !important;
     margin: 5px 0 !important;
+}
+/* Hacer columnas completamente invisibles */
+[data-testid="column"] {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+}
+/* Hacer filas horizontales invisibles */
+div[data-testid="stHorizontalBlock"] {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+/* Hacer tabs y expanders sin fondo */
+.streamlit-expanderHeader {
+    border: none !important;
+    border-radius: 0px !important;
+    margin-bottom: 0px !important;
+    background: transparent !important;
+}
+.streamlit-expanderContent {
+    border: none !important;
+    border-radius: 0px !important;
+    padding: 0px !important;
+    background: transparent !important;
+}
+/* Bloques de contenido general invisible */
+div.stBlock--scrollContainer {
+    background: transparent !important;
+}
+/* Contenedor raíz de Streamlit invisible */
+.stMain > [data-testid="stVerticalBlockBorderWrapper"] {
+    background: transparent !important;
+    border: none !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -494,9 +600,10 @@ def load_model_by_type(model_type):
         return None
     
     try:
-        model = load_model(str(model_path), compile=False, safe_mode=True)
+        model = load_model(str(model_path), compile=False)
         return model
     except Exception as e:
+        st.error(f"Error cargando modelo {model_type}: {str(e)[:200]}")
         return None
 
 def build_X_for_new_model(R_mag_db, cos_dphi, sin_dphi):
@@ -1150,20 +1257,6 @@ def build_catalog(clean_dir: Path):
 def main():
     st.title("OptimLab.IA")
     
-    # ========== VERIFICACIÓN DE MODELOS ==========
-    st.sidebar.subheader("Verificación de Modelos")
-    
-    model_status = {
-        "Fuentes iguales": MODEL_EQUALES.exists(),
-        "Fuentes diferentes": MODEL_DIFERENTES.exists()
-    }
-    
-    for model_name, exists in model_status.items():
-        if exists:
-            st.sidebar.success(f"{model_name}: Disponible")
-        else:
-            st.sidebar.error(f"{model_name}: No encontrado")
-    
     # Construir catálogo
     try:
         catalog = build_catalog(CLEAN_DIR)
@@ -1224,7 +1317,8 @@ def main():
     
     # --- B. MENÚ (MARCO) ---
     with st.container(border=True):
-        c1, c2, c3 = st.columns(3)
+        st.markdown("<div style='margin-bottom: 20px;'></div>", unsafe_allow_html=True)
+        c1, c2, c3 = st.columns(3, gap="medium")
         
         # COL 1: Fuente A
         with c1:
@@ -1987,35 +2081,6 @@ def main():
                         )
                         st.plotly_chart(fig_mag_final, use_container_width=True)
                         st.plotly_chart(fig_ph_final, use_container_width=True)
-                        
-                        # Análisis final por rangos
-                        st.markdown("### ANÁLISIS FINAL POR RANGOS DE FRECUENCIA")
-                        
-                        diff_final = Sm_AB_final - Sm_AB_initial
-                        
-                        rangos_analisis = [
-                            ("Subgraves (20-80 Hz)", 20, 80),
-                            ("Graves (80-250 Hz)", 80, 250),
-                            ("Medio Graves (250-500 Hz)", 250, 500),
-                            ("Medios (500-2000 Hz)", 500, 2000),
-                            ("Medio Agudos (2k-5k Hz)", 2000, 5000),
-                            ("Agudos (5k-20k Hz)", 5000, 20000)
-                        ]
-                        
-                        for nombre, fmin, fmax in rangos_analisis:
-                            mask = (f >= fmin) & (f <= fmax)
-                            if np.any(mask):
-                                mejora = np.mean(diff_final[mask])
-                                if mejora > 3:
-                                    st.success(f"**{nombre}**: Mejora significativa (+{mejora:.1f} dB)")
-                                elif mejora > 1:
-                                    st.info(f"**{nombre}**: Mejora moderada (+{mejora:.1f} dB)")
-                                elif mejora > 0:
-                                    st.warning(f"**{nombre}**: Mejora leve (+{mejora:.1f} dB)")
-                                elif mejora > -1:
-                                    st.warning(f"**{nombre}**: Cambio mínimo ({mejora:.1f} dB)")
-                                else:
-                                    st.error(f"**{nombre}**: Empeoramiento ({mejora:.1f} dB)")
                     
                     # Mensaje final
                     st.markdown("""
