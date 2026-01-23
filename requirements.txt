@@ -5,9 +5,10 @@ matplotlib==3.8.4
 plotly==5.22.0
 
 tensorflow==2.15.0
-keras==3.3.3
+keras==2.15.0
 joblib==1.4.2
 
 scipy==1.11.4
 pandas==2.2.2
+
 
