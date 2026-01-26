@@ -1856,10 +1856,6 @@ def main():
                         </div>
                         """, unsafe_allow_html=True)
                         
-                        # Análisis automático mejorado
-                        delay_error = rec['delay']
-                        st.markdown(analizar_mejoras_ia(f, Sm_AB_initial, Sm_AB_ia, delay_error))
-                        
                         fig_mag_ia, fig_ph_ia = plot_comparison_mag_phase(
                             f,
                             [
@@ -2305,9 +2301,6 @@ def main():
                     Sm_ABC_recommended, Sph_ABC_recommended = complex_to_magphase_deg(Sum_ABC_recommended_complex)
                     
                     with st.expander("RESULTADO CON RECOMENDACIÓN", expanded=False):
-                        # Análisis automático específico para C
-                        st.markdown(analizar_mejoras_fuente_C(f, Sm_ABC_initial, Sm_ABC_recommended, lblC, method_label))
-                        
                         fig_mag_rec_c, fig_ph_rec_c = plot_comparison_mag_phase(
                             f,
                             [
@@ -2557,10 +2550,6 @@ def main():
                         "EVOLUCIÓN: A+B+C INICIAL vs OPTIMIZADA"
                     )
                     st.plotly_chart(fig_mag_abc_final, use_container_width=True)
-                    
-                    # Análisis final por rangos para el sistema completo
-                    st.markdown("### ANÁLISIS FINAL DEL SISTEMA COMPLETO")
-                    st.info("El análisis detallado por rangos de frecuencia está disponible para configuración con dos fuentes. Para sistemas con subwoofer, enfoque en la integración de graves.")
                 
                 # --- MENSAJE FINAL DE CIERRE ---
                 st.markdown("""
