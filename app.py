@@ -1310,7 +1310,10 @@ def main():
     <div class='neon-panel'>
         <div class='panel-title'>LABORATORIO DE SIMULACIÓN PARA ALINEACIÓN DE SISTEMAS DE SONIDO</div>
         <p>
-        Este laboratorio te permite explorar de forma interactiva cómo se comportan los sistemas de refuerzo sonoro al combinar distintas fuentes acústicas. Diseña tu propio escenario de simulación ajustando los parámetros que se muestran en pantalla. Cada elección que realices definirá el comportamiento del sistema y el fenómeno acústico que será analizado.
+        Bienvenido al módulo de simulación. Aquí podrás explorar de forma interactiva cómo se comportan los sistemas de refuerzo sonoro al combinar distintas fuentes acústicas. En este entorno podrás decidir si las fuentes A y B son iguales o diferentes, seleccionar el tipo y modelo de cada fuente (incluyendo distintas marcas, configuraciones como Fuentes puntuales (Point source) o arreglos lineales, basados en datos reales de fabricantes) y, si lo deseas, incorporar una tercera fuente, como un subwoofer. A partir de estas decisiones, el simulador generará un escenario de análisis que te permitirá comprender cómo cada variable influye en el comportamiento del sistema.
+        </p>
+        <p>
+        Diseña tu propio escenario de simulación ajustando los parámetros que se muestran en pantalla. Cada elección que realices definirá el comportamiento del sistema y el fenómeno acústico que será analizado en los siguientes pasos.
         </p>
     </div>
     """, unsafe_allow_html=True)
