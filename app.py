@@ -415,6 +415,37 @@ div.stBlock--scrollContainer {
     background: transparent !important;
     border: none !important;
 }
+.theory-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+    margin: 16px 0 24px 0;
+}
+.theory-card {
+    border: 1px solid rgba(0, 255, 255, 0.4);
+    border-radius: 12px;
+    padding: 16px;
+    background: linear-gradient(180deg, rgba(0, 22, 40, 0.92), rgba(0, 7, 20, 0.78));
+    box-shadow: 0 0 16px rgba(0, 255, 255, 0.14);
+}
+.theory-card h4 {
+    color: #00ffff;
+    margin: 0 0 8px 0;
+    font-size: 1rem;
+}
+.theory-card p {
+    margin: 0;
+    color: #d9f7ff;
+    font-size: 0.9rem;
+    line-height: 1.5rem;
+}
+.equation-box {
+    border-left: 4px solid #ff00ff;
+    background: rgba(255, 0, 255, 0.08);
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin: 10px 0 18px 0;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -1168,12 +1199,12 @@ def plot_comparison_mag_phase(f, series, title_mag, title_ph=None):
         showlegend=True,
         legend=dict(
             orientation="h",
-            yanchor="bottom",
-            y=-0.4,
+            yanchor="top",
+            y=-0.28,
             xanchor="center",
             x=0.5
         ),
-        margin=dict(l=50, r=30, t=80, b=150)
+        margin=dict(l=50, r=30, t=80, b=135)
     )
     
     fig_mag.update_xaxes(
@@ -1210,12 +1241,12 @@ def plot_comparison_mag_phase(f, series, title_mag, title_ph=None):
         showlegend=True,
         legend=dict(
             orientation="h",
-            yanchor="bottom",
-            y=-0.4,
+            yanchor="top",
+            y=-0.28,
             xanchor="center",
             x=0.5
         ),
-        margin=dict(l=50, r=30, t=80, b=150)
+        margin=dict(l=50, r=30, t=80, b=135)
     )
     
     fig_ph.update_xaxes(
@@ -1238,6 +1269,362 @@ def plot_comparison_mag_phase(f, series, title_mag, title_ph=None):
     fig_ph.add_hline(y=-180, line_dash="dot", line_color="#f66", opacity=0.5)
     
     return fig_mag, fig_ph
+
+def create_time_of_arrival_chart():
+    src_a = np.array([-2.0, 8.0])
+    src_b = np.array([2.5, 6.5])
+    mic = np.array([0.0, 0.0])
+    dist_a = float(np.linalg.norm(src_a - mic))
+    dist_b = float(np.linalg.norm(src_b - mic))
+    time_a = dist_a / SOUND_SPEED * 1000.0
+    time_b = dist_b / SOUND_SPEED * 1000.0
+    delta_t = abs(time_b - time_a)
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=[src_a[0], mic[0]],
+        y=[src_a[1], mic[1]],
+        mode="lines",
+        line=dict(color="#00ffff", width=4),
+        name="Trayectoria A",
+        hoverinfo="skip"
+    ))
+    fig.add_trace(go.Scatter(
+        x=[src_b[0], mic[0]],
+        y=[src_b[1], mic[1]],
+        mode="lines",
+        line=dict(color="#ff00ff", width=4),
+        name="Trayectoria B",
+        hoverinfo="skip"
+    ))
+    fig.add_trace(go.Scatter(
+        x=[src_a[0], src_b[0], mic[0]],
+        y=[src_a[1], src_b[1], mic[1]],
+        mode="markers+text",
+        marker=dict(size=[20, 20, 18], color=["#00ffff", "#ff00ff", "#ff5555"], line=dict(color="white", width=1)),
+        text=["Fuente A", "Fuente B", "Micrófono"],
+        textposition=["top center", "top center", "bottom center"],
+        name="Elementos",
+        hoverinfo="skip"
+    ))
+    fig.add_annotation(
+        x=-3.5,
+        y=3.0,
+        text=f"dA = {dist_a:.2f} m<br>tA = {time_a:.2f} ms",
+        showarrow=False,
+        font=dict(color="#dffcff")
+    )
+    fig.add_annotation(
+        x=3.6,
+        y=2.4,
+        text=f"dB = {dist_b:.2f} m<br>tB = {time_b:.2f} ms",
+        showarrow=False,
+        font=dict(color="#ffd6ff")
+    )
+    fig.add_annotation(
+        x=10,
+        y=8,
+        text=f"Δt ≈ {delta_t:.2f} ms",
+        showarrow=False,
+        font=dict(color="#fff799", size=14)
+    )
+    fig.update_layout(
+        title="<b>Vista superior de propagación hacia el punto de medición</b>",
+        height=420,
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,10,20,0.5)',
+        font=dict(color="#e0e0e0", family="Roboto Mono"),
+        margin=dict(l=40, r=30, t=80, b=80),
+        legend=dict(
+            orientation="h",
+            yanchor="top",
+            y=-0.3,
+            xanchor="center",
+            x=0.5,
+            bgcolor="rgba(0,10,20,0.35)"
+        )
+    )
+    fig.update_xaxes(title_text="Posición lateral X (m)", gridcolor="#333", zerolinecolor="#666", range=[-5, 5])
+    fig.update_yaxes(title_text="Profundidad Y (m)", gridcolor="#444", zerolinecolor="#666", range=[-1, 10], scaleanchor="x", scaleratio=1)
+    return fig
+
+def create_phase_delay_chart(delay_ms=2.0):
+    f = np.logspace(np.log10(20), np.log10(2000), 500)
+    phase_deg = -360.0 * f * (delay_ms / 1000.0)
+    phase_wrapped = ((phase_deg + 180.0) % 360.0) - 180.0
+    delay_ms_2 = 4.0
+    phase_deg_2 = -360.0 * f * (delay_ms_2 / 1000.0)
+    phase_wrapped_2 = ((phase_deg_2 + 180.0) % 360.0) - 180.0
+    reference = np.zeros_like(f)
+    sample_freqs = np.array([63.0, 125.0, 250.0, 500.0, 1000.0], dtype=np.float32)
+    sample_phase = ((-360.0 * sample_freqs * (delay_ms / 1000.0) + 180.0) % 360.0) - 180.0
+    sample_phase_2 = ((-360.0 * sample_freqs * (delay_ms_2 / 1000.0) + 180.0) % 360.0) - 180.0
+
+    fig = make_subplots(
+        rows=2,
+        cols=1,
+        shared_xaxes=True,
+        vertical_spacing=0.1,
+        subplot_titles=("Fase medida", "Diferencia de fase")
+    )
+    fig.add_trace(go.Scatter(
+        x=f, y=reference,
+        mode="lines",
+        line=dict(color="#888888", width=2, dash="dash"),
+        name="Referencia 0 ms",
+        hovertemplate="Frecuencia: %{x:.0f} Hz<br>Fase: 0°<extra></extra>"
+    ), row=1, col=1)
+    fig.add_trace(go.Scatter(
+        x=f, y=phase_wrapped,
+        mode="lines",
+        line=dict(color="#00ffff", width=3),
+        name=f"Retardo {delay_ms:.1f} ms",
+        hovertemplate="Frecuencia: %{x:.0f} Hz<br>Fase envuelta: %{y:.1f}°<extra></extra>"
+    ), row=1, col=1)
+    fig.add_trace(go.Scatter(
+        x=f, y=phase_wrapped_2,
+        mode="lines",
+        line=dict(color="#ff00ff", width=3),
+        name=f"Retardo {delay_ms_2:.1f} ms",
+        hovertemplate="Frecuencia: %{x:.0f} Hz<br>Fase envuelta: %{y:.1f}°<extra></extra>"
+    ), row=1, col=1)
+    fig.add_trace(go.Scatter(
+        x=sample_freqs, y=sample_phase,
+        mode="markers",
+        marker=dict(size=8, color="#00ffff"),
+        name=f"Lecturas {delay_ms:.1f} ms",
+        hovertemplate="Frecuencia: %{x:.0f} Hz<br>Fase: %{y:.1f}°<extra></extra>"
+    ), row=1, col=1)
+    fig.add_trace(go.Scatter(
+        x=sample_freqs, y=sample_phase_2,
+        mode="markers",
+        marker=dict(size=8, color="#ff00ff"),
+        name=f"Lecturas {delay_ms_2:.1f} ms",
+        hovertemplate="Frecuencia: %{x:.0f} Hz<br>Fase: %{y:.1f}°<extra></extra>"
+    ), row=1, col=1)
+    fig.add_trace(go.Scatter(
+        x=f, y=-phase_deg,
+        mode="lines",
+        line=dict(color="#ffcc00", width=3),
+        name=f"Δ fase {delay_ms:.1f} ms",
+        hovertemplate="Frecuencia: %{x:.0f} Hz<br>Diferencia: %{y:.1f}°<extra></extra>"
+    ), row=2, col=1)
+    fig.add_trace(go.Scatter(
+        x=f, y=-phase_deg_2,
+        mode="lines",
+        line=dict(color="#ff6699", width=3, dash="dash"),
+        name=f"Δ fase {delay_ms_2:.1f} ms",
+        hovertemplate="Frecuencia: %{x:.0f} Hz<br>Diferencia: %{y:.1f}°<extra></extra>"
+    ), row=2, col=1)
+    fig.update_layout(
+        title=f"<b>Comparación del efecto de {delay_ms:.1f} ms y {delay_ms_2:.1f} ms sobre la fase</b>",
+        height=600,
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,10,20,0.5)',
+        font=dict(color="#e0e0e0", family="Roboto Mono"),
+        margin=dict(l=40, r=150, t=90, b=60),
+        legend=dict(
+            orientation="v",
+            yanchor="top",
+            y=0.98,
+            xanchor="left",
+            x=1.02,
+            bgcolor="rgba(0,10,20,0.35)"
+        )
+    )
+    fig.update_xaxes(title_text="Frecuencia (Hz)", type="log", gridcolor="#333", row=2, col=1)
+    fig.update_xaxes(type="log", gridcolor="#333", row=1, col=1)
+    fig.update_yaxes(title_text="Fase (°)", gridcolor="#444", range=[-190, 190], tickvals=[-180, -90, 0, 90, 180], row=1, col=1)
+    fig.update_yaxes(title_text="Δ fase acumulada (°)", gridcolor="#444", row=2, col=1)
+    fig.add_hline(y=0, line_dash="dot", line_color="#666", opacity=0.6, row=1, col=1)
+    fig.add_hline(y=180, line_dash="dot", line_color="#f66", opacity=0.5, row=1, col=1)
+    fig.add_hline(y=-180, line_dash="dot", line_color="#f66", opacity=0.5, row=1, col=1)
+    return fig
+
+def create_polarity_chart():
+    t = np.linspace(0, 0.04, 900, endpoint=False)
+    a = 0.95 * np.sin(2 * np.pi * 95.0 * t)
+    b = 0.7 * np.sin(2 * np.pi * 95.0 * t + np.deg2rad(65.0))
+    sum_normal = a + b
+    sum_inverted = a - b
+
+    fig_signals = go.Figure()
+    fig_signals.add_trace(go.Scatter(
+        x=t * 1000, y=a,
+        mode="lines",
+        line=dict(color="#00ffff", width=2),
+        name="Señal A",
+        hovertemplate="Tiempo: %{x:.1f} ms<br>Amplitud: %{y:.2f}<extra></extra>"
+    ))
+    fig_signals.add_trace(go.Scatter(
+        x=t * 1000, y=b,
+        mode="lines",
+        line=dict(color="#ff00ff", width=2),
+        name="Señal B",
+        hovertemplate="Tiempo: %{x:.1f} ms<br>Amplitud: %{y:.2f}<extra></extra>"
+    ))
+    fig_signals.update_layout(
+        title="<b>Señales A y B en el tiempo</b>",
+        height=360,
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,10,20,0.5)',
+        font=dict(color="#e0e0e0", family="Roboto Mono"),
+        margin=dict(l=40, r=30, t=85, b=70),
+        legend=dict(
+            orientation="h",
+            yanchor="top",
+            y=-0.24,
+            xanchor="center",
+            x=0.5,
+            bgcolor="rgba(0,10,20,0.35)"
+        )
+    )
+    fig_signals.update_xaxes(title_text="Tiempo (ms)", gridcolor="#333")
+    fig_signals.update_yaxes(title_text="Amplitud relativa", gridcolor="#444")
+
+    fig_sum = go.Figure()
+    fig_sum.add_trace(go.Scatter(
+        x=t * 1000, y=sum_normal,
+        mode="lines",
+        line=dict(color="#7dff7d", width=3),
+        name="A + B",
+        hovertemplate="Tiempo: %{x:.1f} ms<br>Amplitud: %{y:.2f}<extra></extra>"
+    ))
+    fig_sum.add_trace(go.Scatter(
+        x=t * 1000, y=sum_inverted,
+        mode="lines",
+        line=dict(color="#ffcc00", width=3, dash="dash"),
+        name="A + (-B)",
+        hovertemplate="Tiempo: %{x:.1f} ms<br>Amplitud: %{y:.2f}<extra></extra>"
+    ))
+    fig_sum.update_layout(
+        title="<b>Comparación de las sumas antes y después de invertir la polaridad en B</b>",
+        height=360,
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,10,20,0.5)',
+        font=dict(color="#e0e0e0", family="Roboto Mono"),
+        margin=dict(l=40, r=30, t=85, b=70),
+        legend=dict(
+            orientation="h",
+            yanchor="top",
+            y=-0.3,
+            xanchor="center",
+            x=0.5,
+            bgcolor="rgba(0,10,20,0.35)"
+        )
+    )
+    fig_sum.update_xaxes(title_text="Tiempo (ms)", gridcolor="#333")
+    fig_sum.update_yaxes(title_text="Amplitud de la suma", gridcolor="#444")
+    return fig_signals, fig_sum
+
+def create_superposition_chart():
+    fs = 4000
+    t = np.linspace(0, 0.04, int(0.04 * fs), endpoint=False)
+    freq = 100.0
+    p1 = np.sin(2 * np.pi * freq * t)
+    p2_constructive = np.sin(2 * np.pi * freq * t)
+    p2_destructive = -np.sin(2 * np.pi * freq * t)
+
+    fig = make_subplots(
+        rows=1,
+        cols=2,
+        subplot_titles=("Interferencia constructiva", "Interferencia destructiva")
+    )
+
+    for col, second_wave, color_sum in [(1, p2_constructive, "#00ff88"), (2, p2_destructive, "#ff5577")]:
+        fig.add_trace(go.Scatter(x=t * 1000, y=p1, mode="lines", line=dict(color="#00ffff", width=2), name="Fuente 1", showlegend=(col == 1)), row=1, col=col)
+        fig.add_trace(go.Scatter(x=t * 1000, y=second_wave, mode="lines", line=dict(color="#ff00ff", width=2), name="Fuente 2", showlegend=(col == 1)), row=1, col=col)
+        fig.add_trace(go.Scatter(x=t * 1000, y=p1 + second_wave, mode="lines", line=dict(color=color_sum, width=3), name="Suma", showlegend=(col == 1)), row=1, col=col)
+
+    fig.update_layout(
+        title="<b>Superposición de presión acústica en el tiempo</b>",
+        height=420,
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,10,20,0.5)',
+        font=dict(color="#e0e0e0", family="Roboto Mono"),
+        margin=dict(l=40, r=30, t=90, b=85),
+        legend=dict(
+            orientation="h",
+            yanchor="top",
+            y=-0.16,
+            xanchor="center",
+            x=0.5,
+            bgcolor="rgba(0,10,20,0.35)"
+        )
+    )
+    fig.update_xaxes(title_text="Tiempo (ms)", gridcolor="#333")
+    fig.update_yaxes(title_text="Presión relativa", gridcolor="#444")
+    return fig
+
+def create_comb_filter_chart(delay_ms=2.5):
+    f = np.linspace(20, 2000, 3000)
+    dt = delay_ms / 1000.0
+    H = 1.0 + np.exp(-1j * 2 * np.pi * f * dt)
+    mag_db = 20 * np.log10(np.maximum(np.abs(H), 1e-6))
+    first_null = 1.0 / (2.0 * dt)
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=f,
+        y=mag_db,
+        mode="lines",
+        line=dict(color="#00ffff", width=3),
+        hovertemplate="Frecuencia: %{x:.1f} Hz<br>Magnitud: %{y:.1f} dB<extra></extra>"
+    ))
+    fig.add_vline(x=first_null, line_dash="dash", line_color="#ff00ff", opacity=0.8)
+    fig.add_annotation(
+        x=first_null,
+        y=np.min(mag_db) + 2,
+        text=f"Primera cancelación ≈ {first_null:.0f} Hz",
+        showarrow=True,
+        arrowcolor="#ff00ff",
+        font=dict(color="#ffccff")
+    )
+    fig.update_layout(
+        title=f"<b>Filtro de peine para Δt = {delay_ms:.1f} ms</b>",
+        height=380,
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,10,20,0.5)',
+        font=dict(color="#e0e0e0", family="Roboto Mono"),
+        margin=dict(l=40, r=30, t=70, b=50)
+    )
+    fig.update_xaxes(title_text="Frecuencia (Hz)", gridcolor="#333")
+    fig.update_yaxes(title_text="Magnitud relativa (dB)", gridcolor="#444")
+    return fig
+
+def create_spatial_dependency_chart():
+    x_positions = np.linspace(-6.0, 6.0, 250)
+    src_a = np.array([-2.0, 8.0])
+    src_b = np.array([2.0, 8.0])
+    freq = 250.0
+
+    dist_a = np.sqrt((x_positions - src_a[0])**2 + src_a[1]**2)
+    dist_b = np.sqrt((x_positions - src_b[0])**2 + src_b[1]**2)
+    dt = (dist_b - dist_a) / SOUND_SPEED
+    H = 1.0 + np.exp(-1j * 2 * np.pi * freq * dt)
+    mag_db = 20 * np.log10(np.maximum(np.abs(H), 1e-6))
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=x_positions,
+        y=mag_db,
+        mode="lines",
+        line=dict(color="#00ffff", width=3),
+        fill="tozeroy",
+        fillcolor="rgba(0,255,255,0.15)",
+        hovertemplate="Posición: %{x:.1f} m<br>Nivel: %{y:.1f} dB<extra></extra>"
+    ))
+    fig.update_layout(
+        title="<b>Variación espacial de la suma en el área de escucha</b>",
+        height=380,
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,10,20,0.5)',
+        font=dict(color="#e0e0e0", family="Roboto Mono"),
+        margin=dict(l=40, r=30, t=70, b=50)
+    )
+    fig.update_xaxes(title_text="Posición lateral del oyente (m)", gridcolor="#333")
+    fig.update_yaxes(title_text="Nivel resultante a 250 Hz (dB)", gridcolor="#444")
+    return fig
 
 # ==========================================
 # 7. UI Y ESTRUCTURA PRINCIPAL
@@ -1304,21 +1691,379 @@ def main():
         }
     if 'step' not in st.session_state:
         st.session_state.step = 1
+    if 'theory_stage_completed' not in st.session_state:
+        st.session_state.theory_stage_completed = False
     
-    # --- A. BIENVENIDA ---
+    # --- A. ETAPA TEÓRICA ---
+    st.markdown("""
+    <div class='neon-panel'>
+        <div class='panel-title'>ETAPA 0 · FUNDAMENTOS PARA LA INTERACCIÓN ENTRE FUENTES ACÚSTICAS</div>
+        <p>
+        Antes de comenzar el laboratorio de simulación, es necesario comprender qué ocurre cuando varias fuentes acústicas reproducen la misma señal dentro de un sistema de refuerzo sonoro. En aplicaciones reales esto sucede con arreglos principales, front-fills, delays o subwoofers que comparten una región del espectro.
+        </p>
+        <p>
+        En un punto de escucha, el sonido no proviene de una única fuente, sino de la superposición de ondas de presión generadas por todos los elementos del sistema. El resultado depende de la distancia, el tiempo de llegada, la fase, la polaridad y la posición del oyente.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+    <div class="theory-grid">
+        <div class="theory-card">
+            <h4>Objetivo</h4>
+            <p>Entender cómo se combinan varias fuentes que reproducen la misma señal y cómo esa interacción afecta la respuesta medida.</p>
+        </div>
+        <div class="theory-card">
+            <h4>Idea central</h4>
+            <p>La suma entre fuentes no depende solo del nivel: también depende del tiempo de llegada y de la fase en cada frecuencia.</p>
+        </div>
+        <div class="theory-card">
+            <h4>Aplicación</h4>
+            <p>Estos principios permiten interpretar mediciones y tomar decisiones de delay, ganancia y polaridad con criterio técnico.</p>
+        </div>
+        <div class="theory-card">
+            <h4>Meta del laboratorio</h4>
+            <p>Usar estos conceptos para analizar A, B y una posible fuente C dentro de un escenario interactivo de alineación.</p>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    theory_tabs = st.tabs([
+        "Propagación",
+        "Tiempo y fase",
+        "Suma e interferencia",
+        "Filtro de peine",
+        "Polaridad y delay",
+        "Dependencia espacial"
+    ])
+
+    with theory_tabs[0]:
+        st.markdown("""
+        <div class='neon-panel'>
+            <div class='panel-title'>Propagación del sonido y tiempo de llegada</div>
+            <p>
+            Cuando un altavoz reproduce una señal, genera variaciones de presión que se propagan a través del aire. En el régimen lineal y para fines de análisis de campo directo, esa propagación puede modelarse como una onda acústica cuya velocidad en condiciones normales se aproxima por <b>c ≈ 343 m/s</b>.
+            </p>
+            <p>
+            Si una fuente se encuentra a una distancia <b>d</b> del punto de medición, el tiempo de llegada del frente de onda puede estimarse a partir del cociente entre distancia recorrida y velocidad de propagación.
+            </p>
+            <p>
+            En un sistema con múltiples fuentes, cada trayecto geométrico suele ser diferente. Por lo tanto, aunque dos altavoces reproduzcan exactamente la misma señal eléctrica, sus contribuciones acústicas no llegan simultáneamente al punto de observación.
+            </p>
+            <p>
+            Esa diferencia de trayecto es el origen físico de la desalineación temporal entre fuentes y constituye la base de muchos fenómenos de interacción. Antes de evaluar ecualización, nivel o procesamiento, es necesario entender la geometría de propagación del sistema.
+            </p>
+            <p>
+            En términos rigurosos, la propagación fija la referencia temporal sobre la cual luego se interpreta la fase relativa entre señales. Si una fuente recorre una trayectoria mayor, la coincidencia temporal se pierde aun cuando no exista ningún retardo digital aplicado.
+            </p>
+            <p>
+            Este principio es especialmente relevante en arreglos distribuidos, sistemas main-fill, configuraciones con delays y combinaciones top-sub, donde pequeñas variaciones geométricas pueden producir diferencias medibles y audibles en la suma total del sistema.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+        st.latex(r"t = \frac{d}{c}")
+        st.latex(r"\Delta t = \frac{\Delta d}{c}")
+        st.plotly_chart(create_time_of_arrival_chart(), use_container_width=True)
+        st.markdown("""
+        <div class="theory-grid">
+            <div class="theory-card">
+                <h4>Si aumenta d</h4>
+                <p>Aumenta el tiempo de llegada. La señal llega más tarde al punto de medición.</p>
+            </div>
+            <div class="theory-card">
+                <h4>Si aumenta Δd</h4>
+                <p>Aumenta la diferencia temporal entre fuentes y cambia su relación de fase.</p>
+            </div>
+            <div class="theory-card">
+                <h4>Interpretación práctica</h4>
+                <p>Dos altavoces que parecen “juntos” visualmente pueden no estarlo acústicamente en un punto específico del público.</p>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        st.markdown("""
+        <div class='neon-panel'>
+            <div class='panel-title'>Implicación para la medición</div>
+            <p>
+            Cuando se realiza una medición, el micrófono no registra únicamente el nivel radiado por cada fuente; registra también la historia de propagación asociada a cada trayecto. En consecuencia, la posición del micrófono determina qué diferencia temporal se está observando realmente.
+            </p>
+            <p>
+            Una variación pequeña de posición puede modificar la relación entre distancias y alterar de forma apreciable el resultado medido, sobre todo cuando varias fuentes comparten el mismo rango espectral y contribuyen con niveles comparables.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with theory_tabs[1]:
+        st.markdown("""
+        <div class='neon-panel'>
+            <div class='panel-title'>Relación entre tiempo y fase</div>
+            <p>
+            La fase describe el estado instantáneo de una oscilación periódica dentro de su ciclo. Si dos señales llegan en instantes distintos, la diferencia temporal entre ambas se traduce en una diferencia de fase cuyo valor depende explícitamente de la frecuencia.
+            </p>
+            <p>
+            Un mismo retardo equivale a una fracción pequeña de ciclo a baja frecuencia y a múltiples fracciones de ciclo a frecuencias más altas. Por ello, un delay fijo no produce un desfase uniforme en todo el espectro.
+            </p>
+            <p>
+            Esta distinción es fundamental: el tiempo es una magnitud absoluta, mientras que la fase es una magnitud relativa al periodo. En consecuencia, una misma diferencia temporal puede implicar comportamientos radicalmente distintos en 80 Hz, 500 Hz o 4 kHz.
+            </p>
+            <p>
+            Desde un punto de vista práctico, esto explica por qué no basta con afirmar que una señal fue “adelantada” o “atrasada” sin especificar la banda de análisis. El mismo delay puede mejorar la relación de fase en una región del espectro y deteriorarla en otra.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+        st.latex(r"\phi(f) = -2 \pi f \Delta t")
+        st.latex(r"\phi_{deg}(f) = -360 f \Delta t")
+        st.plotly_chart(create_phase_delay_chart(delay_ms=2.0), use_container_width=True)
+        st.warning("La gráfica compara una referencia temporal ideal con una señal retrasada y muestra cómo el retardo se manifiesta como pendiente de fase y como incremento acumulado del desfase.")
+        st.markdown("""
+        <div class='neon-panel'>
+            <div class='panel-title'>Lectura física de la fase</div>
+            <p>
+            Si dos señales presentan una diferencia de fase cercana a <b>0°</b> en una frecuencia dada, sus contribuciones tienden a sumarse de manera eficiente en esa frecuencia.
+            </p>
+            <p>
+            Si la diferencia se aproxima a <b>180°</b>, las señales tienden a cancelarse. Entre ambos extremos aparecen sumas parciales cuya magnitud depende del ángulo relativo y de la relación de niveles.
+            </p>
+            <p>
+            Por esta razón, una única diferencia temporal puede producir simultáneamente suma favorable en unas frecuencias y cancelación en otras. Ese comportamiento mixto es una consecuencia directa de la dependencia entre fase y frecuencia.
+            </p>
+            <p>
+            En sistemas reales también intervienen filtros, cruces, procesamiento interno y características electroacústicas del transductor. Todo ello modifica la fase de cada fuente incluso antes de considerar la contribución geométrica de la distancia.
+            </p>
+            <p>
+            Por esa razón, la interpretación de la fase debe hacerse de forma contextual: una pendiente puede estar asociada a un retardo, pero también puede combinarse con el comportamiento propio del sistema bajo análisis.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with theory_tabs[2]:
+        st.markdown("""
+        <div class='neon-panel'>
+            <div class='panel-title'>Superposición de ondas e interferencia</div>
+            <p>
+            Cuando dos ondas llegan al mismo punto, las presiones se suman. Si las fases son similares, la suma es constructiva. Si son opuestas, aparecen cancelaciones parciales o totales.
+            </p>
+            <p>
+            Este fenómeno se describe mediante el principio de superposición: el campo acústico total es la suma de los aportes individuales de cada fuente. En audio, no “gana” una fuente sobre la otra; ambas contribuyen al resultado final.
+            </p>
+            <p>
+            Cuando se habla de suma entre fuentes en refuerzo sonoro, lo que realmente se está sumando es la presión acústica que cada una produce en el punto de observación. El resultado puede ser mayor, menor o simplemente diferente al esperado intuitivamente si no se considera la fase.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+        st.latex(r"p_{total}(t) = p_1(t) + p_2(t)")
+        st.plotly_chart(create_superposition_chart(), use_container_width=True)
+        st.success("En la práctica, el espectro final suele contener zonas con refuerzo y otras con cancelación.")
+        st.markdown("""
+        <div class='neon-panel'>
+            <div class='panel-title'>Constructiva vs destructiva</div>
+            <p>
+            La interferencia constructiva ocurre cuando las variaciones de presión de ambas señales tienen signo similar en el mismo instante. La destructiva ocurre cuando una aumenta la presión mientras la otra la reduce.
+            </p>
+            <p>
+            En señales reales y de banda ancha, esto no sucede igual en todo el espectro. Por eso las mediciones muestran respuestas complejas y no una simple suma uniforme.
+            </p>
+            <p>
+            Esto explica por qué dos cajas que por separado “suenan bien” pueden generar una respuesta irregular al trabajar juntas. El problema no necesariamente está en cada fuente individual, sino en la forma en que ambas interactúan en el espacio.
+            </p>
+            <p>
+            Comprender esta diferencia entre comportamiento individual y comportamiento combinado es clave para interpretar correctamente una medición y decidir si hace falta ajustar delay, polaridad, nivel o incluso replantear la geometría del sistema.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+        st.markdown("""
+        <div class="theory-grid">
+            <div class="theory-card">
+                <h4>0° aprox.</h4>
+                <p>Tendencia a suma eficiente.</p>
+            </div>
+            <div class="theory-card">
+                <h4>90° aprox.</h4>
+                <p>Suma parcial; no hay máxima coherencia.</p>
+            </div>
+            <div class="theory-card">
+                <h4>180° aprox.</h4>
+                <p>Tendencia a cancelación.</p>
+            </div>
+            <div class="theory-card">
+                <h4>Resultado real</h4>
+                <p>Combinación simultánea de refuerzos y cancelaciones según la frecuencia.</p>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with theory_tabs[3]:
+        st.markdown("""
+        <div class='neon-panel'>
+            <div class='panel-title'>Filtro de peine</div>
+            <p>
+            Si la diferencia temporal entre dos señales es constante, la relación de fase cambia con la frecuencia y aparecen picos y valles periódicos en la magnitud. Este patrón se conoce como <b>filtro de peine</b>.
+            </p>
+            <p>
+            El nombre proviene de la forma de la curva, que presenta múltiples dientes o muescas. Este es uno de los fenómenos más típicos cuando dos fuentes cubren la misma banda y llegan con un pequeño desfase temporal.
+            </p>
+            <p>
+            Cuanto mayor es la diferencia temporal, más juntas aparecen las cancelaciones en frecuencia. Cuanto menor es el retardo, más separadas aparecen esas muescas.
+            </p>
+            <p>
+            Este fenómeno no debe entenderse como una curiosidad gráfica, sino como una consecuencia directa de la coexistencia entre suma y cancelación a lo largo del espectro. Es uno de los indicios más claros de que dos señales similares están llegando desalineadas en el tiempo.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+        st.latex(r"f_n = \frac{2n + 1}{2 \Delta t}")
+        st.plotly_chart(create_comb_filter_chart(delay_ms=2.5), use_container_width=True)
+        st.info("El filtro de peine explica por qué un sistema puede sonar muy diferente con pequeños cambios de distancia o delay.")
+        st.markdown("""
+        <div class='neon-panel'>
+            <div class='panel-title'>Interpretación de la fórmula de cancelaciones</div>
+            <p>
+            La expresión de <b>f<sub>n</sub></b> permite estimar las frecuencias donde se esperan las cancelaciones principales. No reemplaza una medición real, pero ofrece una referencia muy útil para anticipar el comportamiento del sistema.
+            </p>
+            <p>
+            Si el retardo es constante, el patrón de picos y valles se repite de manera periódica. Este patrón suele observarse con claridad en respuestas de magnitud cuando dos fuentes reproducen el mismo contenido.
+            </p>
+            <p>
+            En la práctica, el filtro de peine puede degradar la claridad, alterar el balance tonal y dificultar que el público perciba una cobertura homogénea. Por eso se considera un problema central en zonas donde confluyen varias fuentes con material correlacionado.
+            </p>
+            <p>
+            Su presencia también sirve como herramienta diagnóstica: cuando aparecen muescas periódicas bien definidas, suele haber una diferencia temporal estable entre dos contribuciones relevantes en el punto medido.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with theory_tabs[4]:
+        st.markdown("""
+        <div class='neon-panel'>
+            <div class='panel-title'>Polaridad y delay: diferencias clave</div>
+            <p>
+            Invertir la polaridad equivale a multiplicar la señal por <b>−1</b>. En términos de fase, esa operación representa un desplazamiento de <b>180°</b> constante para todas las frecuencias del espectro.
+            </p>
+            <p>
+            En cambio, un delay produce un desplazamiento de fase proporcional a la frecuencia. Esta diferencia conceptual es crítica: una inversión de polaridad no compensa un retardo, y un retardo no equivale a una inversión de polaridad.
+            </p>
+            <p>
+            Esta distinción es una de las más importantes en alineación de sistemas. Con frecuencia se observa una cancelación intensa y se asume erróneamente que invertir polaridad resolverá el problema. Sin embargo, si la causa principal es temporal, esa inversión solo modificará la relación angular, pero no corregirá el origen físico del desfase.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+        st.latex(r"x(t) \rightarrow -x(t)")
+        polarity_fig_signals, polarity_fig_sum = create_polarity_chart()
+        st.plotly_chart(polarity_fig_signals, use_container_width=True)
+        st.plotly_chart(polarity_fig_sum, use_container_width=True)
+        st.markdown("""
+        <div class="theory-grid">
+            <div class="theory-card">
+                <h4>Polaridad invertida</h4>
+                <p>Desplazamiento de 180° en todas las frecuencias.</p>
+            </div>
+            <div class="theory-card">
+                <h4>Delay</h4>
+                <p>Desplazamiento de fase variable con la frecuencia.</p>
+            </div>
+            <div class="theory-card">
+                <h4>Consecuencia</h4>
+                <p>No son herramientas equivalentes y no corrigen el mismo tipo de problema.</p>
+            </div>
+            <div class="theory-card">
+                <h4>Aplicación</h4>
+                <p>La polaridad puede resolver casos específicos; el delay busca alinear tiempos de llegada.</p>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        st.markdown("""
+        <div class='neon-panel'>
+            <div class='panel-title'>Criterio de uso</div>
+            <p>
+            Si dos señales están razonablemente alineadas en tiempo pero una presenta orientación opuesta respecto de la otra, una inversión de polaridad puede mejorar la interacción.
+            </p>
+            <p>
+            Si el problema principal es una diferencia de trayecto entre fuentes, el ajuste más lógico suele ser el delay. En la práctica, ambos recursos deben interpretarse conjuntamente con las mediciones de magnitud y fase.
+            </p>
+            <p>
+            En sistemas complejos, la decisión rara vez puede tomarse a partir de una sola gráfica o una sola frecuencia. Lo correcto es observar cómo varía la interacción en la banda de interés y evaluar si el ajuste mejora la coherencia en la región espectral relevante para la aplicación.
+            </p>
+            <p>
+            Por ello, polaridad y delay deben entenderse como herramientas distintas dentro de una estrategia de alineación, no como soluciones intercambiables.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with theory_tabs[5]:
+        st.markdown("""
+        <div class='neon-panel'>
+            <div class='panel-title'>Ajuste temporal y dependencia espacial</div>
+            <p>
+            En refuerzo sonoro se usan delays digitales para compensar diferencias de propagación entre fuentes. El objetivo es mejorar la relación de fase en una región útil del espectro, no necesariamente en todas las frecuencias.
+            </p>
+            <p>
+            También es importante entender que la interacción entre fuentes cambia con la posición del oyente. Una alineación favorable en un punto no garantiza el mismo resultado en toda el área de cobertura.
+            </p>
+            <p>
+            Esto ocurre porque las distancias relativas entre las fuentes y cada asiento del público cambian constantemente. Por lo tanto, también cambia la diferencia de tiempo y, con ella, la fase.
+            </p>
+            <p>
+            El resultado es que la respuesta del sistema no es idéntica en toda el área. Algunas posiciones pueden presentar una suma muy favorable, mientras que otras muestran cancelaciones importantes en bandas específicas.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+        st.plotly_chart(create_spatial_dependency_chart(), use_container_width=True)
+        st.markdown("""
+        <div class="theory-grid">
+            <div class="theory-card">
+                <h4>Delay</h4>
+                <p>Corrige diferencias temporales entre fuentes para mejorar la suma en un rango de frecuencias.</p>
+            </div>
+            <div class="theory-card">
+                <h4>Ganancia</h4>
+                <p>Controla cuánto aporta cada fuente a la respuesta total en el punto de medición.</p>
+            </div>
+            <div class="theory-card">
+                <h4>Polaridad</h4>
+                <p>Puede resolver o agravar cancelaciones cuando las señales están temporalmente alineadas.</p>
+            </div>
+            <div class="theory-card">
+                <h4>Geometría</h4>
+                <p>La posición relativa entre fuentes y oyente modifica trayectos, tiempos de llegada y fase.</p>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        st.markdown("""
+        <div class='neon-panel'>
+            <div class='panel-title'>Límite práctico de la alineación</div>
+            <p>
+            Una alineación no debe entenderse como una solución universal para toda el área, sino como una optimización en una zona o condición de referencia. Cuanto más grande es el sistema y más extensa el área de cobertura, más evidente se vuelve esta limitación.
+            </p>
+            <p>
+            Por eso en aplicaciones reales se eligen cuidadosamente los puntos de medición, se priorizan bandas críticas y se acepta que no siempre puede lograrse coherencia completa en todas las posiciones.
+            </p>
+            <p>
+            Esta realidad obliga a trabajar con criterios de compromiso. La meta no es una perfección imposible en todo el recinto, sino una mejora controlada y técnicamente defendible en la zona donde el sistema necesita rendir mejor.
+            </p>
+            <p>
+            Entender esta limitación evita conclusiones erróneas durante el laboratorio: si una optimización mejora claramente un punto de referencia, eso no significa que el problema haya desaparecido en todo el espacio, sino que la interacción fue reorganizada de forma más conveniente en la región evaluada.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+    col_theory = st.columns([1, 1, 1])[1]
+    with col_theory:
+        if st.button("CONTINUAR AL LABORATORIO", type="primary", key="continue_to_lab", use_container_width=True):
+            st.session_state.theory_stage_completed = True
+            st.rerun()
+
+    if not st.session_state.theory_stage_completed:
+        st.stop()
+    
+    # --- B. BIENVENIDA AL LABORATORIO ---
     st.markdown("""
     <div class='neon-panel'>
         <div class='panel-title'>LABORATORIO DE SIMULACIÓN PARA ALINEACIÓN DE SISTEMAS DE SONIDO</div>
         <p>
-        Bienvenido al módulo de simulación. Aquí podrás explorar de forma interactiva cómo se comportan los sistemas de refuerzo sonoro al combinar distintas fuentes acústicas. En este entorno podrás decidir si las fuentes A y B son iguales o diferentes, seleccionar el tipo y modelo de cada fuente (incluyendo distintas marcas, configuraciones como Fuentes puntuales (Point source) o arreglos lineales, basados en datos reales de fabricantes) y, si lo deseas, incorporar una tercera fuente, como un subwoofer. A partir de estas decisiones, el simulador generará un escenario de análisis que te permitirá comprender cómo cada variable influye en el comportamiento del sistema.
-        </p>
-        <p>
-        Diseña tu propio escenario de simulación ajustando los parámetros que se muestran en pantalla. Cada elección que realices definirá el comportamiento del sistema y el fenómeno acústico que será analizado en los siguientes pasos.
+        Ahora puedes construir el escenario de simulación. Selecciona las fuentes, define su disposición espacial y analiza cómo cambian magnitud y fase cuando ajustas delay, ganancia y polaridad.
         </p>
     </div>
     """, unsafe_allow_html=True)
     
-    # --- B. MENÚ (MARCO) ---
+    # --- C. MENÚ (MARCO) ---
     with st.container(border=True):
         st.markdown("<div style='margin-bottom: 20px;'></div>", unsafe_allow_html=True)
         c1, c2, c3 = st.columns(3, gap="medium")
@@ -1528,7 +2273,7 @@ def main():
                 depth = 0.0
                 posC = (0.0, 0.0)
     
-    # --- C. DIAGRAMA ---
+    # --- D. DIAGRAMA ---
     st.markdown("""
     <div class='neon-panel'>
         <div class='panel-title'>DIAGRAMA DE DISPOSICIÓN</div>
@@ -1583,7 +2328,7 @@ def main():
         </div>
         """, unsafe_allow_html=True)
     
-    # --- D. CARGAR DATOS ---
+    # --- E. CARGAR DATOS ---
     @st.cache_data
     def load_initial_data(pathA, pathB, pathC=None):
         fA, mA, pA = load_clean_txt(pathA)
