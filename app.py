@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import numpy as np
 from pathlib import Path
 import re
@@ -445,6 +446,39 @@ div.stBlock--scrollContainer {
     padding: 12px 16px;
     border-radius: 8px;
     margin: 10px 0 18px 0;
+}
+.theory-var {
+    font-weight: 700;
+}
+.var-c {
+    color: #8dd3c7;
+}
+.var-d {
+    color: #f7c873;
+}
+.var-delta-d {
+    color: #f6a6b2;
+}
+.var-t {
+    color: #a7c7ff;
+}
+.var-delta-t {
+    color: #cdb4ff;
+}
+.var-f {
+    color: #b8f2a5;
+}
+.var-phi {
+    color: #ffcab0;
+}
+.var-p {
+    color: #9ad1ff;
+}
+.theory-nav-label {
+    color: #d9f7ff;
+    font-size: 0.92rem;
+    line-height: 1.6rem;
+    margin: 8px 0 14px 0;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -1532,9 +1566,27 @@ def create_superposition_chart():
     )
 
     for col, second_wave, color_sum in [(1, p2_constructive, "#00ff88"), (2, p2_destructive, "#ff5577")]:
-        fig.add_trace(go.Scatter(x=t * 1000, y=p1, mode="lines", line=dict(color="#00ffff", width=2), name="Fuente 1", showlegend=(col == 1)), row=1, col=col)
-        fig.add_trace(go.Scatter(x=t * 1000, y=second_wave, mode="lines", line=dict(color="#ff00ff", width=2), name="Fuente 2", showlegend=(col == 1)), row=1, col=col)
-        fig.add_trace(go.Scatter(x=t * 1000, y=p1 + second_wave, mode="lines", line=dict(color=color_sum, width=3), name="Suma", showlegend=(col == 1)), row=1, col=col)
+        fig.add_trace(go.Scatter(
+            x=t * 1000, y=p1, mode="lines",
+            line=dict(color="#00ffff", width=2),
+            name="Fuente 1",
+            legendgroup="fuente_1",
+            showlegend=(col == 1)
+        ), row=1, col=col)
+        fig.add_trace(go.Scatter(
+            x=t * 1000, y=second_wave, mode="lines",
+            line=dict(color="#ff00ff", width=2),
+            name="Fuente 2",
+            legendgroup="fuente_2",
+            showlegend=(col == 1)
+        ), row=1, col=col)
+        fig.add_trace(go.Scatter(
+            x=t * 1000, y=p1 + second_wave, mode="lines",
+            line=dict(color=color_sum, width=3),
+            name="Suma constructiva" if col == 1 else "Suma destructiva",
+            legendgroup="suma_constructiva" if col == 1 else "suma_destructiva",
+            showlegend=True
+        ), row=1, col=col)
 
     fig.update_layout(
         title="<b>Superposición de presión acústica en el tiempo</b>",
@@ -1549,11 +1601,81 @@ def create_superposition_chart():
             y=-0.16,
             xanchor="center",
             x=0.5,
-            bgcolor="rgba(0,10,20,0.35)"
+            bgcolor="rgba(0,10,20,0.35)",
+            groupclick="togglegroup"
         )
     )
     fig.update_xaxes(title_text="Tiempo (ms)", gridcolor="#333")
     fig.update_yaxes(title_text="Presión relativa", gridcolor="#444")
+    return fig
+
+def create_gain_chart():
+    t = np.linspace(0, 0.045, 1000, endpoint=False)
+    a = np.sin(2 * np.pi * 90.0 * t)
+    b_nominal = np.sin(2 * np.pi * 90.0 * t)
+    b_minus6 = (10 ** (-6.0 / 20.0)) * b_nominal
+    sum_nominal = a + b_nominal
+    sum_minus6 = a + b_minus6
+
+    fig = make_subplots(
+        rows=2,
+        cols=1,
+        shared_xaxes=True,
+        vertical_spacing=0.12,
+        subplot_titles=("Señales individuales", "Suma resultante")
+    )
+
+    fig.add_trace(go.Scatter(
+        x=t * 1000, y=a,
+        mode="lines",
+        line=dict(color="#00ffff", width=2),
+        name="Fuente A"
+    ), row=1, col=1)
+    fig.add_trace(go.Scatter(
+        x=t * 1000, y=b_nominal,
+        mode="lines",
+        line=dict(color="#ff00ff", width=2),
+        name="Fuente B 0 dB"
+    ), row=1, col=1)
+    fig.add_trace(go.Scatter(
+        x=t * 1000, y=b_minus6,
+        mode="lines",
+        line=dict(color="#ffb347", width=2, dash="dash"),
+        name="Fuente B -6 dB"
+    ), row=1, col=1)
+    fig.add_trace(go.Scatter(
+        x=t * 1000, y=sum_nominal,
+        mode="lines",
+        line=dict(color="#7dff7d", width=3),
+        name="Suma con B a 0 dB"
+    ), row=2, col=1)
+    fig.add_trace(go.Scatter(
+        x=t * 1000, y=sum_minus6,
+        mode="lines",
+        line=dict(color="#ffd166", width=3, dash="dash"),
+        name="Suma con B a -6 dB"
+    ), row=2, col=1)
+
+    fig.update_layout(
+        title="<b>Efecto de la ganancia sobre el aporte relativo de una fuente</b>",
+        height=560,
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,10,20,0.5)',
+        font=dict(color="#e0e0e0", family="Roboto Mono"),
+        margin=dict(l=40, r=30, t=90, b=70),
+        legend=dict(
+            orientation="h",
+            yanchor="top",
+            y=-0.18,
+            xanchor="center",
+            x=0.5,
+            bgcolor="rgba(0,10,20,0.35)"
+        )
+    )
+    fig.update_xaxes(title_text="Tiempo (ms)", gridcolor="#333", row=2, col=1)
+    fig.update_xaxes(gridcolor="#333", row=1, col=1)
+    fig.update_yaxes(title_text="Amplitud relativa", gridcolor="#444", row=1, col=1)
+    fig.update_yaxes(title_text="Suma relativa", gridcolor="#444", row=2, col=1)
     return fig
 
 def create_comb_filter_chart(delay_ms=2.5):
@@ -1693,6 +1815,21 @@ def main():
         st.session_state.step = 1
     if 'theory_stage_completed' not in st.session_state:
         st.session_state.theory_stage_completed = False
+    theory_labels = [
+        "Propagación",
+        "Tiempo y fase",
+        "Suma e interferencia",
+        "Filtro de peine",
+        "Ganancia, polaridad y delay",
+        "Dependencia espacial"
+    ]
+    should_scroll_theory_top = False
+    if 'pending_theory_tab' in st.session_state:
+        st.session_state.theory_tab = st.session_state.pending_theory_tab
+        del st.session_state['pending_theory_tab']
+        should_scroll_theory_top = True
+    if 'theory_tab' not in st.session_state:
+        st.session_state.theory_tab = theory_labels[0]
     
     # --- A. ETAPA TEÓRICA ---
     st.markdown("""
@@ -1707,45 +1844,58 @@ def main():
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown("""
-    <div class="theory-grid">
-        <div class="theory-card">
-            <h4>Objetivo</h4>
-            <p>Entender cómo se combinan varias fuentes que reproducen la misma señal y cómo esa interacción afecta la respuesta medida.</p>
-        </div>
-        <div class="theory-card">
-            <h4>Idea central</h4>
-            <p>La suma entre fuentes no depende solo del nivel: también depende del tiempo de llegada y de la fase en cada frecuencia.</p>
-        </div>
-        <div class="theory-card">
-            <h4>Aplicación</h4>
-            <p>Estos principios permiten interpretar mediciones y tomar decisiones de delay, ganancia y polaridad con criterio técnico.</p>
-        </div>
-        <div class="theory-card">
-            <h4>Meta del laboratorio</h4>
-            <p>Usar estos conceptos para analizar A, B y una posible fuente C dentro de un escenario interactivo de alineación.</p>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown("<div id='theory-nav-top'></div>", unsafe_allow_html=True)
+    current_theory_tab = st.radio(
+        "Secciones de teoría",
+        options=theory_labels,
+        horizontal=True,
+        key="theory_tab",
+        label_visibility="collapsed"
+    )
+    st.markdown(
+        f"<div id='theory-current-section' class='theory-nav-label'>Sección actual: <span class='theory-var var-delta-t'>{current_theory_tab}</span></div>",
+        unsafe_allow_html=True
+    )
+    if should_scroll_theory_top:
+        components.html(
+            """
+            <script>
+                const parentDoc = window.parent.document;
 
-    theory_tabs = st.tabs([
-        "Propagación",
-        "Tiempo y fase",
-        "Suma e interferencia",
-        "Filtro de peine",
-        "Polaridad y delay",
-        "Dependencia espacial"
-    ])
+                function getAnchor() {
+                    return parentDoc.getElementById('theory-current-section') || parentDoc.getElementById('theory-nav-top');
+                }
 
-    with theory_tabs[0]:
+                function scrollTheoryTop(useSmooth) {
+                    const anchor = getAnchor();
+                    if (!anchor || !anchor.scrollIntoView) return;
+
+                    try {
+                        anchor.scrollIntoView({
+                            behavior: useSmooth ? 'smooth' : 'auto',
+                            block: 'start',
+                            inline: 'nearest'
+                        });
+                    } catch (e) {}
+                }
+
+                [60, 140, 240, 380, 560, 820, 1100].forEach((delay, index) => {
+                    window.setTimeout(() => scrollTheoryTop(index === 0), delay);
+                });
+            </script>
+            """,
+            height=0,
+        )
+
+    if current_theory_tab == theory_labels[0]:
         st.markdown("""
         <div class='neon-panel'>
             <div class='panel-title'>Propagación del sonido y tiempo de llegada</div>
             <p>
-            Cuando un altavoz reproduce una señal, genera variaciones de presión que se propagan a través del aire. En el régimen lineal y para fines de análisis de campo directo, esa propagación puede modelarse como una onda acústica cuya velocidad en condiciones normales se aproxima por <b>c ≈ 343 m/s</b>.
+            Cuando un altavoz reproduce una señal, genera variaciones de presión que se propagan a través del aire. En el régimen lineal y para fines de análisis de campo directo, esa propagación puede modelarse como una onda acústica cuya velocidad en condiciones normales se aproxima por <span class="theory-var var-c">c ≈ 343 m/s</span>.
             </p>
             <p>
-            Si una fuente se encuentra a una distancia <b>d</b> del punto de medición, el tiempo de llegada del frente de onda puede estimarse a partir del cociente entre distancia recorrida y velocidad de propagación.
+            Si una fuente se encuentra a una distancia <span class="theory-var var-d">d</span> del punto de medición, el tiempo de llegada del frente de onda puede estimarse a partir del cociente entre distancia recorrida y velocidad de propagación.
             </p>
             <p>
             En un sistema con múltiples fuentes, cada trayecto geométrico suele ser diferente. Por lo tanto, aunque dos altavoces reproduzcan exactamente la misma señal eléctrica, sus contribuciones acústicas no llegan simultáneamente al punto de observación.
@@ -1761,17 +1911,28 @@ def main():
             </p>
         </div>
         """, unsafe_allow_html=True)
-        st.latex(r"t = \frac{d}{c}")
-        st.latex(r"\Delta t = \frac{\Delta d}{c}")
+        st.latex(r"{\color{LightSkyBlue}t} = \frac{{\color{Khaki}d}}{{\color{MediumAquamarine}c}}")
+        st.latex(r"{\color{Thistle}\Delta t} = \frac{{\color{LightPink}\Delta d}}{{\color{MediumAquamarine}c}}")
+        st.markdown("""
+        <div class='neon-panel'>
+            <div class='panel-title'>Lectura del esquema</div>
+            <p>
+            La gráfica siguiente muestra una vista superior simplificada con dos fuentes y un punto de medición. Las líneas representan los trayectos acústicos desde cada fuente hasta el micrófono, de modo que la comparación entre <span class="theory-var var-d">d<sub>A</sub></span> y <span class="theory-var var-d">d<sub>B</sub></span> permite visualizar por qué aparecen tiempos de llegada distintos aun cuando ambas fuentes reproduzcan la misma señal eléctrica.
+            </p>
+            <p>
+            El objetivo del esquema no es describir un recinto completo, sino fijar una referencia geométrica clara para interpretar la diferencia temporal <span class="theory-var var-delta-t">Δt</span> que luego condiciona la fase relativa y la suma medida en el micrófono.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
         st.plotly_chart(create_time_of_arrival_chart(), use_container_width=True)
         st.markdown("""
         <div class="theory-grid">
             <div class="theory-card">
-                <h4>Si aumenta d</h4>
+                <h4>Si aumenta <span class="theory-var var-d">d</span></h4>
                 <p>Aumenta el tiempo de llegada. La señal llega más tarde al punto de medición.</p>
             </div>
             <div class="theory-card">
-                <h4>Si aumenta Δd</h4>
+                <h4>Si aumenta <span class="theory-var var-delta-d">Δd</span></h4>
                 <p>Aumenta la diferencia temporal entre fuentes y cambia su relación de fase.</p>
             </div>
             <div class="theory-card">
@@ -1784,15 +1945,15 @@ def main():
         <div class='neon-panel'>
             <div class='panel-title'>Implicación para la medición</div>
             <p>
-            Cuando se realiza una medición, el micrófono no registra únicamente el nivel radiado por cada fuente; registra también la historia de propagación asociada a cada trayecto. En consecuencia, la posición del micrófono determina qué diferencia temporal se está observando realmente.
+            Cuando se realiza una medición con varias fuentes activas, el micrófono registra la suma acústica total que llega a su posición. Esa señal medida incorpora simultáneamente la contribución de cada fuente, con su nivel, su fase y el tiempo de propagación correspondiente a cada trayecto.
             </p>
             <p>
-            Una variación pequeña de posición puede modificar la relación entre distancias y alterar de forma apreciable el resultado medido, sobre todo cuando varias fuentes comparten el mismo rango espectral y contribuyen con niveles comparables.
+            En consecuencia, la posición del micrófono define qué relación geométrica, qué diferencia temporal y qué interacción entre aportes se está observando realmente. Una variación pequeña de posición puede modificar las distancias relativas y alterar de forma apreciable el resultado medido, sobre todo cuando varias fuentes comparten el mismo rango espectral y contribuyen con niveles comparables.
             </p>
         </div>
         """, unsafe_allow_html=True)
 
-    with theory_tabs[1]:
+    elif current_theory_tab == theory_labels[1]:
         st.markdown("""
         <div class='neon-panel'>
             <div class='panel-title'>Relación entre tiempo y fase</div>
@@ -1810,18 +1971,18 @@ def main():
             </p>
         </div>
         """, unsafe_allow_html=True)
-        st.latex(r"\phi(f) = -2 \pi f \Delta t")
-        st.latex(r"\phi_{deg}(f) = -360 f \Delta t")
+        st.latex(r"{\color{PeachPuff}\phi}({\color{LightGreen}f}) = -2 \pi {\color{LightGreen}f}\,{\color{Thistle}\Delta t}")
+        st.latex(r"{\color{PeachPuff}\phi_{deg}}({\color{LightGreen}f}) = -360\,{\color{LightGreen}f}\,{\color{Thistle}\Delta t}")
         st.plotly_chart(create_phase_delay_chart(delay_ms=2.0), use_container_width=True)
         st.warning("La gráfica compara una referencia temporal ideal con una señal retrasada y muestra cómo el retardo se manifiesta como pendiente de fase y como incremento acumulado del desfase.")
         st.markdown("""
         <div class='neon-panel'>
             <div class='panel-title'>Lectura física de la fase</div>
             <p>
-            Si dos señales presentan una diferencia de fase cercana a <b>0°</b> en una frecuencia dada, sus contribuciones tienden a sumarse de manera eficiente en esa frecuencia.
+            Si dos señales presentan una diferencia de fase cercana a <span class="theory-var var-phi">0°</span> en una frecuencia dada, sus contribuciones tienden a sumarse de manera eficiente en esa frecuencia.
             </p>
             <p>
-            Si la diferencia se aproxima a <b>180°</b>, las señales tienden a cancelarse. Entre ambos extremos aparecen sumas parciales cuya magnitud depende del ángulo relativo y de la relación de niveles.
+            Si la diferencia se aproxima a <span class="theory-var var-phi">180°</span>, las señales tienden a cancelarse. Entre ambos extremos aparecen sumas parciales cuya magnitud depende del ángulo relativo y de la relación de niveles.
             </p>
             <p>
             Por esta razón, una única diferencia temporal puede producir simultáneamente suma favorable en unas frecuencias y cancelación en otras. Ese comportamiento mixto es una consecuencia directa de la dependencia entre fase y frecuencia.
@@ -1835,7 +1996,7 @@ def main():
         </div>
         """, unsafe_allow_html=True)
 
-    with theory_tabs[2]:
+    elif current_theory_tab == theory_labels[2]:
         st.markdown("""
         <div class='neon-panel'>
             <div class='panel-title'>Superposición de ondas e interferencia</div>
@@ -1850,7 +2011,7 @@ def main():
             </p>
         </div>
         """, unsafe_allow_html=True)
-        st.latex(r"p_{total}(t) = p_1(t) + p_2(t)")
+        st.latex(r"{\color{LightSkyBlue}p_{total}}({\color{LightSkyBlue}t}) = {\color{PowderBlue}p_1}({\color{LightSkyBlue}t}) + {\color{LightCyan}p_2}({\color{LightSkyBlue}t})")
         st.plotly_chart(create_superposition_chart(), use_container_width=True)
         st.success("En la práctica, el espectro final suele contener zonas con refuerzo y otras con cancelación.")
         st.markdown("""
@@ -1873,15 +2034,15 @@ def main():
         st.markdown("""
         <div class="theory-grid">
             <div class="theory-card">
-                <h4>0° aprox.</h4>
+                <h4><span class="theory-var var-phi">0°</span> aprox.</h4>
                 <p>Tendencia a suma eficiente.</p>
             </div>
             <div class="theory-card">
-                <h4>90° aprox.</h4>
+                <h4><span class="theory-var var-phi">90°</span> aprox.</h4>
                 <p>Suma parcial; no hay máxima coherencia.</p>
             </div>
             <div class="theory-card">
-                <h4>180° aprox.</h4>
+                <h4><span class="theory-var var-phi">180°</span> aprox.</h4>
                 <p>Tendencia a cancelación.</p>
             </div>
             <div class="theory-card">
@@ -1891,7 +2052,7 @@ def main():
         </div>
         """, unsafe_allow_html=True)
 
-    with theory_tabs[3]:
+    elif current_theory_tab == theory_labels[3]:
         st.markdown("""
         <div class='neon-panel'>
             <div class='panel-title'>Filtro de peine</div>
@@ -1909,14 +2070,12 @@ def main():
             </p>
         </div>
         """, unsafe_allow_html=True)
-        st.latex(r"f_n = \frac{2n + 1}{2 \Delta t}")
-        st.plotly_chart(create_comb_filter_chart(delay_ms=2.5), use_container_width=True)
-        st.info("El filtro de peine explica por qué un sistema puede sonar muy diferente con pequeños cambios de distancia o delay.")
+        st.latex(r"{\color{LightGreen}f_n} = \frac{2n + 1}{2\,{\color{Thistle}\Delta t}}")
         st.markdown("""
         <div class='neon-panel'>
             <div class='panel-title'>Interpretación de la fórmula de cancelaciones</div>
             <p>
-            La expresión de <b>f<sub>n</sub></b> permite estimar las frecuencias donde se esperan las cancelaciones principales. No reemplaza una medición real, pero ofrece una referencia muy útil para anticipar el comportamiento del sistema.
+            La expresión de <span class="theory-var var-f">f<sub>n</sub></span> permite estimar las frecuencias donde se esperan las cancelaciones principales. No reemplaza una medición real, pero ofrece una referencia muy útil para anticipar el comportamiento del sistema.
             </p>
             <p>
             Si el retardo es constante, el patrón de picos y valles se repite de manera periódica. Este patrón suele observarse con claridad en respuestas de magnitud cuando dos fuentes reproducen el mismo contenido.
@@ -1924,18 +2083,48 @@ def main():
             <p>
             En la práctica, el filtro de peine puede degradar la claridad, alterar el balance tonal y dificultar que el público perciba una cobertura homogénea. Por eso se considera un problema central en zonas donde confluyen varias fuentes con material correlacionado.
             </p>
+        </div>
+        """, unsafe_allow_html=True)
+        st.markdown("""
+        <div class='neon-panel'>
+            <div class='panel-title'>Lectura de la gráfica</div>
             <p>
-            Su presencia también sirve como herramienta diagnóstica: cuando aparecen muescas periódicas bien definidas, suele haber una diferencia temporal estable entre dos contribuciones relevantes en el punto medido.
+            A continuación se presenta una gráfica de magnitud que ilustra el patrón espectral generado cuando dos señales correlacionadas llegan con una diferencia temporal fija. En ella podrán identificarse regiones de refuerzo y regiones de cancelación distribuidas periódicamente a lo largo del eje de frecuencia.
+            </p>
+            <p>
+            Esta visualización permite relacionar el valor de <span class="theory-var var-delta-t">Δt</span> con la separación entre muescas: cuanto mayor es la diferencia temporal, mayor es la densidad del patrón de cancelaciones dentro de una misma banda de frecuencia.
             </p>
         </div>
         """, unsafe_allow_html=True)
+        st.plotly_chart(create_comb_filter_chart(delay_ms=2.5), use_container_width=True)
 
-    with theory_tabs[4]:
+    elif current_theory_tab == theory_labels[4]:
         st.markdown("""
         <div class='neon-panel'>
-            <div class='panel-title'>Polaridad y delay: diferencias clave</div>
+            <div class='panel-title'>Ganancia, polaridad y delay: diferencias clave</div>
             <p>
-            Invertir la polaridad equivale a multiplicar la señal por <b>−1</b>. En términos de fase, esa operación representa un desplazamiento de <b>180°</b> constante para todas las frecuencias del espectro.
+            La <span class="theory-var var-f">ganancia</span> controla cuánto aporta una fuente respecto de otra en el punto de observación. Si dos señales no llegan con el mismo nivel, la suma deja de ser simétrica y la contribución dominante condiciona con más fuerza el resultado final.
+            </p>
+            <p>
+            En términos prácticos, modificar ganancia no cambia el tiempo de llegada ni corrige por sí solo una desalineación de fase, pero sí altera la proporción con la que cada fuente participa en la suma acústica total.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+        st.latex(r"{\color{PowderBlue}A} = 10^{\frac{{\color{LightGreen}G}}{20}}")
+        st.markdown("""
+        <div class='neon-panel'>
+            <div class='panel-title'>Efecto de la ganancia</div>
+            <p>
+            La gráfica compara una misma fuente <span class="theory-var var-p">B</span> con dos ajustes de nivel distintos. Al reducirla <span class="theory-var var-f">6 dB</span>, su forma temporal se conserva, pero su peso dentro de la suma disminuye; por eso la señal total se acerca más al comportamiento de la fuente <span class="theory-var var-p">A</span>.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+        st.plotly_chart(create_gain_chart(), use_container_width=True)
+        st.markdown("""
+        <div class='neon-panel'>
+            <div class='panel-title'>Polaridad y delay</div>
+            <p>
+            Invertir la polaridad equivale a multiplicar la señal por <span class="theory-var var-phi">−1</span>. En términos de fase, esa operación representa un desplazamiento de <span class="theory-var var-phi">180°</span> constante para todas las frecuencias del espectro.
             </p>
             <p>
             En cambio, un delay produce un desplazamiento de fase proporcional a la frecuencia. Esta diferencia conceptual es crítica: una inversión de polaridad no compensa un retardo, y un retardo no equivale a una inversión de polaridad.
@@ -1945,12 +2134,16 @@ def main():
             </p>
         </div>
         """, unsafe_allow_html=True)
-        st.latex(r"x(t) \rightarrow -x(t)")
+        st.latex(r"{\color{LightSkyBlue}x}({\color{LightSkyBlue}t}) \rightarrow -{\color{LightSkyBlue}x}({\color{LightSkyBlue}t})")
         polarity_fig_signals, polarity_fig_sum = create_polarity_chart()
         st.plotly_chart(polarity_fig_signals, use_container_width=True)
         st.plotly_chart(polarity_fig_sum, use_container_width=True)
         st.markdown("""
         <div class="theory-grid">
+            <div class="theory-card">
+                <h4>Ganancia</h4>
+                <p>Modifica el peso relativo de cada fuente dentro de la suma total.</p>
+            </div>
             <div class="theory-card">
                 <h4>Polaridad invertida</h4>
                 <p>Desplazamiento de 180° en todas las frecuencias.</p>
@@ -1961,17 +2154,16 @@ def main():
             </div>
             <div class="theory-card">
                 <h4>Consecuencia</h4>
-                <p>No son herramientas equivalentes y no corrigen el mismo tipo de problema.</p>
-            </div>
-            <div class="theory-card">
-                <h4>Aplicación</h4>
-                <p>La polaridad puede resolver casos específicos; el delay busca alinear tiempos de llegada.</p>
+                <p>Ganancia, polaridad y delay no son herramientas equivalentes y actúan sobre variables distintas.</p>
             </div>
         </div>
         """, unsafe_allow_html=True)
         st.markdown("""
         <div class='neon-panel'>
             <div class='panel-title'>Criterio de uso</div>
+            <p>
+            Si una fuente aporta demasiado o demasiado poco respecto de otra, el ajuste inicial más lógico suele ser la ganancia. Ese cambio permite ponderar la contribución relativa antes de evaluar si la interacción restante se debe a un problema de fase o de tiempo.
+            </p>
             <p>
             Si dos señales están razonablemente alineadas en tiempo pero una presenta orientación opuesta respecto de la otra, una inversión de polaridad puede mejorar la interacción.
             </p>
@@ -1987,7 +2179,7 @@ def main():
         </div>
         """, unsafe_allow_html=True)
 
-    with theory_tabs[5]:
+    else:
         st.markdown("""
         <div class='neon-panel'>
             <div class='panel-title'>Ajuste temporal y dependencia espacial</div>
@@ -2044,11 +2236,23 @@ def main():
         </div>
         """, unsafe_allow_html=True)
 
-    col_theory = st.columns([1, 1, 1])[1]
-    with col_theory:
-        if st.button("CONTINUAR AL LABORATORIO", type="primary", key="continue_to_lab", use_container_width=True):
-            st.session_state.theory_stage_completed = True
+    current_theory_index = theory_labels.index(current_theory_tab)
+    nav_prev, nav_next = st.columns(2)
+    with nav_prev:
+        if current_theory_index > 0 and st.button("ANTERIOR", key="theory_prev", use_container_width=True):
+            st.session_state.pending_theory_tab = theory_labels[current_theory_index - 1]
             st.rerun()
+    with nav_next:
+        if current_theory_index < len(theory_labels) - 1 and st.button("SIGUIENTE", key="theory_next", use_container_width=True):
+            st.session_state.pending_theory_tab = theory_labels[current_theory_index + 1]
+            st.rerun()
+
+    if current_theory_index == len(theory_labels) - 1:
+        col_theory = st.columns([1, 1, 1])[1]
+        with col_theory:
+            if st.button("CONTINUAR AL LABORATORIO", type="primary", key="continue_to_lab", use_container_width=True):
+                st.session_state.theory_stage_completed = True
+                st.rerun()
 
     if not st.session_state.theory_stage_completed:
         st.stop()
@@ -2058,7 +2262,16 @@ def main():
     <div class='neon-panel'>
         <div class='panel-title'>LABORATORIO DE SIMULACIÓN PARA ALINEACIÓN DE SISTEMAS DE SONIDO</div>
         <p>
-        Ahora puedes construir el escenario de simulación. Selecciona las fuentes, define su disposición espacial y analiza cómo cambian magnitud y fase cuando ajustas delay, ganancia y polaridad.
+        Este es un laboratorio en el que puedes construir sistemas de sonido con dos o tres fuentes acústicas y estudiar su comportamiento en un punto de escucha. A partir de la selección de las fuentes y de la variación de parámetros como tipo de fuente, modelo, posición, separación, profundidad, delay, ganancia y polaridad, el sistema genera un caso de análisis de alineación para evaluar cómo interactúan las contribuciones acústicas de cada elemento.
+        </p>
+        <p>
+        En ese punto de escucha se presentarán las diferencias entre las respuestas individuales de cada fuente, así como la contribución final resultante en el espacio cuando actúan de manera combinada. De este modo, podrás observar cómo cambia la respuesta del sistema a medida que modificas la configuración geométrica y los parámetros de ajuste.
+        </p>
+        <p>
+        Además, un modelo de inteligencia artificial será el encargado de proponer recomendaciones de ajuste para parámetros como delay, ganancia y polaridad, con el objetivo de mejorar la alineación entre las fuentes y ofrecer un punto de comparación frente a la condición inicial y a los cambios manuales realizados por el usuario.
+        </p>
+        <p>
+        Ahora puedes construir tu escenario de simulación. Más abajo podrás seleccionar las fuentes, definir si trabajarás con dos o tres elementos, elegir sus modelos, ajustar su disposición espacial y experimentar con los controles de delay, ganancia y polaridad para analizar cómo cada decisión modifica la respuesta y la alineación del sistema.
         </p>
     </div>
     """, unsafe_allow_html=True)
@@ -2075,27 +2288,27 @@ def main():
             # Asegurar que catalog tiene datos
             if not catalog:
                 st.error("No hay datos disponibles en el catálogo")
+                ta = None
                 ba = None
             else:
-                # Obtener marcas disponibles
-                marcas = list(catalog.keys())
-                if not marcas:
-                    st.error("No hay marcas disponibles")
+                tipos_a = sorted({
+                    tipo for marca_data in catalog.values() for tipo in marca_data.keys()
+                    if "SUB" not in tipo.upper()
+                })
+                if not tipos_a:
+                    st.error("No hay tipos disponibles")
+                    ta = None
                     ba = None
                 else:
-                    ba = st.selectbox("Marca A", marcas, key="ba", index=0)
+                    ta = st.selectbox("Tipo A", tipos_a, key="ta", index=0)
+                    marcas_a = sorted([marca for marca, marca_data in catalog.items() if ta in marca_data])
+                    if not marcas_a:
+                        st.error("No hay marcas disponibles para este tipo")
+                        ba = None
+                    else:
+                        ba = st.selectbox("Marca A", marcas_a, key="ba", index=0)
             
-            if ba and ba in catalog:
-                # Filtrar tipos para excluir SUBWOOFER
-                tipos_disponibles = list(catalog[ba].keys())
-                ta_opts = [k for k in tipos_disponibles if "SUB" not in k.upper()]
-                
-                if not ta_opts:
-                    st.warning("No hay tipos disponibles (excluyendo SUBWOOFER)")
-                    ta = None
-                else:
-                    ta = st.selectbox("Tipo A", ta_opts, key="ta", index=0)
-                
+            if ba and ta and ba in catalog:
                 if ta and ta in catalog[ba]:
                     modelos_disponibles = list(catalog[ba][ta].keys())
                     if not modelos_disponibles:
@@ -2138,25 +2351,24 @@ def main():
                     pathB, lblB = pathA, f"{ma}"
                     st.info("Bloqueado (Igual a A)")
                 else:
-                    # Obtener marcas disponibles para B
-                    marcas_b = list(catalog.keys())
-                    if not marcas_b:
-                        st.error("No hay marcas disponibles")
+                    tipos_b = sorted({
+                        tipo for marca_data in catalog.values() for tipo in marca_data.keys()
+                        if "SUB" not in tipo.upper()
+                    })
+                    if not tipos_b:
+                        st.error("No hay tipos disponibles")
+                        tb = None
                         bb = None
                     else:
-                        bb = st.selectbox("Marca B", marcas_b, key="bb", index=0)
-                    
-                    if bb and bb in catalog:
-                        # Filtrar tipos para excluir SUBWOOFER
-                        tipos_disponibles_b = list(catalog[bb].keys())
-                        tb_opts = [k for k in tipos_disponibles_b if "SUB" not in k.upper()]
-                        
-                        if not tb_opts:
-                            st.warning("No hay tipos disponibles (excluyendo SUBWOOFER)")
-                            tb = None
+                        tb = st.selectbox("Tipo B", tipos_b, key="tb", index=0)
+                        marcas_b = sorted([marca for marca, marca_data in catalog.items() if tb in marca_data])
+                        if not marcas_b:
+                            st.error("No hay marcas disponibles para este tipo")
+                            bb = None
                         else:
-                            tb = st.selectbox("Tipo B", tb_opts, key="tb", index=0)
-                        
+                            bb = st.selectbox("Marca B", marcas_b, key="bb", index=0)
+                    
+                    if bb and tb and bb in catalog:
                         if tb and tb in catalog[bb]:
                             modelos_disponibles_b = list(catalog[bb][tb].keys())
                             if not modelos_disponibles_b:
@@ -2213,35 +2425,38 @@ def main():
             
             if use_third:
                 source_type = st.radio("Tipo de fuente C", ["Subwoofer", "Top adicional"], key="source_type")
-                
-                # Obtener marcas disponibles para C
-                marcas_c = list(catalog.keys())
-                if not marcas_c:
-                    st.error("No hay marcas disponibles")
+
+                if source_type == "Subwoofer":
+                    tc_opts = sorted({
+                        tipo for marca_data in catalog.values() for tipo in marca_data.keys()
+                        if "SUB" in tipo.upper()
+                    })
+                    if not tc_opts:
+                        tc_opts = sorted({tipo for marca_data in catalog.values() for tipo in marca_data.keys()})
+                        st.warning("No se encontraron subwoofers específicos, mostrando todos los tipos")
+                else:
+                    tc_opts = sorted({
+                        tipo for marca_data in catalog.values() for tipo in marca_data.keys()
+                        if "SUB" not in tipo.upper()
+                    })
+                    if not tc_opts:
+                        tc_opts = sorted({tipo for marca_data in catalog.values() for tipo in marca_data.keys()})
+                        st.warning("No hay tipos disponibles (excluyendo SUBWOOFER), mostrando todos")
+
+                if not tc_opts:
+                    st.error("No hay tipos disponibles para la fuente C")
+                    tc = None
                     bc = None
                 else:
-                    bc = st.selectbox("Marca C", marcas_c, key="bc", index=0)
-                
-                if bc and bc in catalog:
-                    if source_type == "Subwoofer":
-                        # Buscar tipos que contengan "SUB"
-                        tc_opts = [k for k in catalog[bc].keys() if "SUB" in k.upper()]
-                        if not tc_opts:
-                            tc_opts = list(catalog[bc].keys())
-                            st.warning("No se encontraron subwoofers específicos, mostrando todos los tipos")
+                    tc = st.selectbox("Tipo C", tc_opts, key="tc", index=0)
+                    marcas_c = sorted([marca for marca, marca_data in catalog.items() if tc in marca_data])
+                    if not marcas_c:
+                        st.error("No hay marcas disponibles para este tipo")
+                        bc = None
                     else:
-                        # Excluir SUBWOOFER
-                        tc_opts = [k for k in catalog[bc].keys() if "SUB" not in k.upper()]
-                        if not tc_opts:
-                            tc_opts = list(catalog[bc].keys())
-                            st.warning("No hay tipos disponibles (excluyendo SUBWOOFER), mostrando todos")
-                    
-                    if not tc_opts:
-                        st.error("No hay tipos disponibles para esta marca")
-                        tc = None
-                    else:
-                        tc = st.selectbox("Tipo C", tc_opts, key="tc", index=0)
-                    
+                        bc = st.selectbox("Marca C", marcas_c, key="bc", index=0)
+
+                if bc and tc and bc in catalog:
                     if tc and tc in catalog[bc]:
                         modelos_disponibles_c = list(catalog[bc][tc].keys())
                         if not modelos_disponibles_c:
