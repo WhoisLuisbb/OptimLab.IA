@@ -533,114 +533,93 @@ def apply_dsp(X, f_hz, delay_ms, gain_db, pol):
         out = -out
     return out.astype(np.complex64)
 
-def find_crossover_frequency(f, mag_AB, mag_C):
-    """Encuentra la frecuencia de cruce donde las dos fuentes comparten energía de manera significativa."""
-    # Para subwoofers, nos interesan las bajas frecuencias (20-200 Hz)
-    low_freq_mask = (f >= 20) & (f <= 200)
-    
-    if not np.any(low_freq_mask):
-        return 100.0  # Frecuencia por defecto
-    
-    f_low = f[low_freq_mask]
-    mag_AB_low = mag_AB[low_freq_mask]
-    mag_C_low = mag_C[low_freq_mask]
-    
-    # Normalizar las magnitudes en el rango bajo
-    mag_AB_norm = mag_AB_low - np.max(mag_AB_low)
-    mag_C_norm = mag_C_low - np.max(mag_C_low)
-    
-    # Encontrar puntos donde ambas tienen energía razonable (dentro de -15 dB del máximo)
-    threshold = -15
-    mask_AB_valid = mag_AB_norm >= threshold
-    mask_C_valid = mag_C_norm >= threshold
-    
-    # Intersección de rangos válidos
-    valid_mask = mask_AB_valid & mask_C_valid
-    
-    if np.any(valid_mask):
-        mag_diff = np.abs(mag_AB_norm[valid_mask] - mag_C_norm[valid_mask])
-        
-        if len(mag_diff) > 5:
-            kernel_size = min(5, len(mag_diff))
-            kernel = np.ones(kernel_size) / kernel_size
-            mag_diff_smooth = np.convolve(mag_diff, kernel, mode='valid')
-            
-            min_idx_smooth = np.argmin(mag_diff_smooth)
-            min_idx = min_idx_smooth + kernel_size // 2
-            min_idx = min(min_idx, len(f_low[valid_mask]) - 1)
-        else:
-            min_idx = np.argmin(mag_diff)
-        
-        crossover_freq = f_low[valid_mask][min_idx]
-        
-        if crossover_freq < 30:
-            mag_diff_all = np.abs(mag_AB_norm - mag_C_norm)
-            freq_weight = 1.0 / (1.0 + np.exp(-0.05 * (f_low - 80)))
-            weighted_diff = mag_diff_all * freq_weight
-            min_idx_weighted = np.argmin(weighted_diff)
-            crossover_freq = f_low[min_idx_weighted]
-    else:
-        mag_diff = np.abs(mag_AB_norm - mag_C_norm)
-        min_idx = np.argmin(mag_diff)
-        crossover_freq = f_low[min_idx]
-    
-    # Clip al rango típico de crossover para subwoofers
-    crossover_freq = np.clip(crossover_freq, 50, 120)
-    
-    return crossover_freq
+def find_crossover_frequency(f, mag_tops, mag_sub):
+    """
+    Encuentra la frecuencia de cruce estimada como el punto donde el rolloff
+    natural del sub y el rolloff natural de los tops se intersectan.
+    Se evalúa en la región 40–200 Hz, que cubre los cruces típicos top-sub.
+    """
+    mask = (f >= 40) & (f <= 200)
+    if not np.any(mask):
+        return 80.0
 
-def calculate_subwoofer_delay(f, mag_AB, phase_AB, mag_C, phase_C, crossover_freq):
-    """Calcula el delay óptimo para el subwoofer basado en la frecuencia de cruce."""
-    idx = np.argmin(np.abs(f - crossover_freq))
-    
-    phase_AB_at_crossover = phase_AB[idx]
-    phase_C_at_crossover = phase_C[idx]
-    
-    phase_AB_norm = phase_AB_at_crossover % 360
-    phase_C_norm = phase_C_at_crossover % 360
-    
-    phase_diff = phase_AB_norm - phase_C_norm
-    if phase_diff > 180:
-        phase_diff -= 360
-    elif phase_diff < -180:
-        phase_diff += 360
-    
-    delay_ms = (phase_diff / 360.0) * (1000.0 / crossover_freq)
-    
-    phase_C_inverted = (phase_C_norm + 180) % 360
-    phase_diff_inverted = phase_AB_norm - phase_C_inverted
-    if phase_diff_inverted > 180:
-        phase_diff_inverted -= 360
-    elif phase_diff_inverted < -180:
-        phase_diff_inverted += 360
-    
-    delay_ms_inverted = (phase_diff_inverted / 360.0) * (1000.0 / crossover_freq)
-    
-    if abs(delay_ms) > 10 and abs(delay_ms_inverted) < abs(delay_ms):
-        return delay_ms_inverted, True
-    elif abs(delay_ms) <= 10:
-        return delay_ms, False
-    else:
-        if abs(delay_ms_inverted) < abs(delay_ms):
-            return delay_ms_inverted, True
-        else:
-            return delay_ms, False
+    f_r = f[mask]
+    # Normalizar cada curva a su máximo dentro del rango de análisis
+    tops_r = mag_tops[mask] - np.max(mag_tops[mask])
+    sub_r  = mag_sub[mask]  - np.max(mag_sub[mask])
 
-def load_clean_txt(path: Path):
-    text = path.read_text(encoding="utf-8", errors="ignore")
-    rows = []
-    for ln in text.splitlines():
-        toks = NUM_RE.findall(ln.strip().replace(",", " "))
-        if len(toks) >= 3:
-            f, mag, ph = float(toks[0]), float(toks[1]), float(toks[2])
-            if f > 0:
-                rows.append((f, mag, ph))
-    if len(rows) < 10:
-        raise ValueError(f"Archivo inválido: {path}")
-    arr = np.array(sorted(rows, key=lambda x: x[0]), dtype=np.float64)
-    _, idx = np.unique(arr[:, 0], return_index=True)
-    arr = arr[np.sort(idx)]
-    return arr[:,0], arr[:,1], arr[:,2]
+    # La frecuencia de cruce es donde las curvas normalizadas se intersectan
+    diff = tops_r - sub_r
+    sign_changes = np.where(np.diff(np.sign(diff)))[0]
+
+    if len(sign_changes) > 0:
+        # Usar la primera intersección (la más baja en frecuencia)
+        idx = sign_changes[0]
+        # Interpolación lineal para mayor precisión
+        x0, x1 = f_r[idx], f_r[idx + 1]
+        y0, y1 = diff[idx], diff[idx + 1]
+        fc = x0 - y0 * (x1 - x0) / (y1 - y0)
+    else:
+        # No hay intersección: usar el punto de mínima diferencia
+        fc = f_r[np.argmin(np.abs(diff))]
+
+    return float(np.clip(fc, 40, 200))
+
+def calculate_subwoofer_delay(f, mag_tops, phase_tops, mag_sub, phase_sub,
+                               crossover_freq, bw_octaves=0.5):
+    """
+    Calcula el delay óptimo para el subwoofer minimizando la diferencia de
+    fase promedio en una banda alrededor de la frecuencia de cruce.
+
+    Parámetros
+    ----------
+    bw_octaves : ancho de la banda de evaluación en octavas (±bw_octaves/2)
+    
+    Retorna
+    -------
+    delay_ms : delay a aplicar al sub (positivo = sub llega tarde → adelantar sub)
+    invert   : True si conviene invertir polaridad
+    """
+    # Banda de evaluación alrededor del cruce
+    f_lo = crossover_freq * 2 ** (-bw_octaves / 2)
+    f_hi = crossover_freq * 2 ** ( bw_octaves / 2)
+    mask = (f >= f_lo) & (f <= f_hi)
+
+    if not np.any(mask):
+        mask = np.array([np.argmin(np.abs(f - crossover_freq))])
+
+    f_band     = f[mask]
+    ph_tops_b  = phase_tops[mask]
+    ph_sub_b   = phase_sub[mask]
+
+    # Diferencia de fase con manejo de discontinuidades (unwrap)
+    ph_tops_uw = np.unwrap(np.deg2rad(ph_tops_b))
+    ph_sub_uw  = np.unwrap(np.deg2rad(ph_sub_b))
+    dphi_rad   = ph_tops_uw - ph_sub_uw   # positivo → tops adelantado
+
+    # El delay que minimiza dphi en banda:
+    # dphi(f) ≈ 2π·f·Δt  →  Δt = dphi / (2π·f)
+    # Ajuste por mínimos cuadrados sobre la pendiente de fase
+    omega = 2 * np.pi * f_band
+    # Regresión: dphi = omega * delay  (sin término constante)
+    delay_s = float(np.dot(omega, dphi_rad) / np.dot(omega, omega))
+    delay_ms = delay_s * 1000.0
+
+    # Evaluar si invertir polaridad mejora la alineación
+    # Inversión ↔ sumar 180° constante
+    dphi_inv = dphi_rad - np.pi
+    # Envolver a [-π, π]
+    dphi_inv = (dphi_inv + np.pi) % (2 * np.pi) - np.pi
+
+    rms_normal = np.sqrt(np.mean(dphi_rad ** 2))
+    rms_inv    = np.sqrt(np.mean(dphi_inv ** 2))
+
+    if rms_inv < rms_normal * 0.7:   # mejora ≥ 30 %
+        delay_s_inv = float(np.dot(omega, dphi_inv) / np.dot(omega, omega))
+        return delay_s_inv * 1000.0, True
+
+    return delay_ms, False
+
 
 def resample_to_bins(f, mag_db, ph_deg, fmin=FMIN, fmax=FMAX, n_bins=N_BINS):
     """Resample sin unwrap/wrap - igual que en el generador de datos del entrenamiento"""
@@ -724,19 +703,32 @@ def get_ai_recommendation_AB(Am, Ap, Bm, Bp, same_file):
     }
 
 def get_dsp_recommendation_C(f, Sum_mag, Sum_ph, C_mag, C_ph):
-    """Calcula recomendación DSP para subwoofer"""
+    """
+    Calcula recomendación DSP para subwoofer con lógica corregida.
+    """
     try:
         crossover_freq = find_crossover_frequency(f, Sum_mag, C_mag)
-        delay, pol = calculate_subwoofer_delay(f, Sum_mag, Sum_ph, C_mag, C_ph, crossover_freq)
-        
-        # Para subwoofer, el gain se calcula para igualar niveles en la frecuencia de cruce
-        idx = np.argmin(np.abs(f - crossover_freq))
-        gain = Sum_mag[idx] - C_mag[idx]
-        
+        delay_ms, invert_pol = calculate_subwoofer_delay(
+            f, Sum_mag, Sum_ph, C_mag, C_ph, crossover_freq
+        )
+
+        # Gain: promedio de la diferencia en una banda de ±1 octava al cruce
+        f_lo = crossover_freq * 0.5
+        f_hi = crossover_freq * 2.0
+        mask = (f >= f_lo) & (f <= f_hi)
+        if np.any(mask):
+            gain = float(np.mean(Sum_mag[mask] - C_mag[mask]))
+        else:
+            gain = float(Sum_mag[np.argmin(np.abs(f - crossover_freq))]
+                         - C_mag[np.argmin(np.abs(f - crossover_freq))])
+
+        # Limitar el gain a un rango razonable
+        gain = float(np.clip(gain, -MAX_GAIN_DB, MAX_GAIN_DB))
+
         return {
-            'delay': delay,
+            'delay': float(np.clip(delay_ms, -MAX_DELAY_MS, MAX_DELAY_MS)),
             'gain': gain,
-            'pol': pol,
+            'pol': invert_pol,
             'crossover_freq': crossover_freq,
             'method': 'DSP'
         }
