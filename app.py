@@ -533,6 +533,22 @@ def apply_dsp(X, f_hz, delay_ms, gain_db, pol):
         out = -out
     return out.astype(np.complex64)
 
+def load_clean_txt(path: Path):
+    text = path.read_text(encoding="utf-8", errors="ignore")
+    rows = []
+    for ln in text.splitlines():
+        toks = NUM_RE.findall(ln.strip().replace(",", " "))
+        if len(toks) >= 3:
+            f, mag, ph = float(toks[0]), float(toks[1]), float(toks[2])
+            if f > 0:
+                rows.append((f, mag, ph))
+    if len(rows) < 10:
+        raise ValueError(f"Archivo inválido: {path}")
+    arr = np.array(sorted(rows, key=lambda x: x[0]), dtype=np.float64)
+    _, idx = np.unique(arr[:, 0], return_index=True)
+    arr = arr[np.sort(idx)]
+    return arr[:,0], arr[:,1], arr[:,2]
+    
 def find_crossover_frequency(f, mag_tops, mag_sub):
     """
     Encuentra la frecuencia de cruce estimada como el punto donde el rolloff
